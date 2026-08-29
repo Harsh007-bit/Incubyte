@@ -12,3 +12,23 @@ export function queryValues(value: unknown): string[] {
   }
   return unique;
 }
+
+function firstString(value: unknown): string | undefined {
+  if (Array.isArray(value)) return firstString(value[0]);
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return undefined;
+}
+
+export function queryParam(
+  req: { query: Record<string, unknown>; url?: string; originalUrl?: string },
+  key: string,
+): string | undefined {
+  const raw = req.originalUrl ?? req.url ?? "";
+  const q = raw.includes("?") ? raw.slice(raw.indexOf("?") + 1) : "";
+  if (q) {
+    const fromUrl = new URLSearchParams(q).get(key);
+    if (fromUrl != null && fromUrl !== "") return fromUrl;
+  }
+  return firstString(req.query[key]);
+}

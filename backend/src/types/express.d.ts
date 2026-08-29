@@ -14,6 +14,8 @@ declare module "express" {
       params: Record<string, string>;
       query: Record<string, unknown>;
       body: unknown;
+      url?: string;
+      originalUrl?: string;
     }
 
     interface Response {

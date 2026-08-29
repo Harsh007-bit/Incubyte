@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { api } from "../../../api";
+import { Skeleton, TableSkeleton } from "../../Skeleton";
 import { formatUsd, sumUsd } from "../../../utils/money";
 import type { AvgRow, HeadcountRow, SpendRow } from "../../../models/types";
 
@@ -10,15 +11,28 @@ export function Insights() {
   const [spend, setSpend] = useState<SpendRow[]>([]);
   const [avg, setAvg] = useState<AvgRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
     Promise.all([api.headcount(groupBy), api.spend(groupBy), api.avgSalary(groupBy)])
       .then(([h, s, a]) => {
+        if (cancelled) return;
         setHeadcount(h);
         setSpend(s);
         setAvg(a);
       })
-      .catch((err: Error) => setError(err.message));
+      .catch((err: Error) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [groupBy]);
 
   const people = headcount.reduce((sum, row) => sum + row.headcount, 0);
@@ -47,32 +61,40 @@ export function Insights() {
       <div className="metrics">
         <div className="card metric">
           Active headcount
-          <strong>{people.toLocaleString()}</strong>
+          {loading ? <Skeleton className="skel-metric" /> : <strong>{people.toLocaleString()}</strong>}
         </div>
         <div className="card metric">
           Current spend (USD)
-          <strong>{formatUsd(totalSpend)}</strong>
+          {loading ? <Skeleton className="skel-metric" /> : <strong>{formatUsd(totalSpend)}</strong>}
         </div>
         <div className="card metric">
           Groups
-          <strong>{headcount.length}</strong>
+          {loading ? <Skeleton className="skel-metric" /> : <strong>{headcount.length}</strong>}
         </div>
       </div>
 
-      <div className="card" style={{ padding: 20 }}>
+      <div className="card" style={{ padding: 20 }} aria-busy={loading}>
         <h2>Spend by {groupBy}</h2>
-        {spend.map((row) => (
-          <div className="bar-row" key={row.group}>
-            <span>{row.group}</span>
-            <div className="bar">
-              <i style={{ width: `${(Number(row.spend_usd) / maxSpend) * 100}%` }} />
-            </div>
-            <span className="mono">{formatUsd(row.spend_usd)}</span>
-          </div>
-        ))}
+        {loading
+          ? Array.from({ length: 6 }, (_, i) => (
+              <div className="bar-row" key={i}>
+                <Skeleton className="skel-mid" />
+                <div className="bar" />
+                <Skeleton className="skel-mid" />
+              </div>
+            ))
+          : spend.map((row) => (
+              <div className="bar-row" key={row.group}>
+                <span>{row.group}</span>
+                <div className="bar">
+                  <i style={{ width: `${(Number(row.spend_usd) / maxSpend) * 100}%` }} />
+                </div>
+                <span className="mono">{formatUsd(row.spend_usd)}</span>
+              </div>
+            ))}
       </div>
 
-      <div className="card" style={{ padding: 20, marginTop: 20 }}>
+      <div className="card" style={{ padding: 20, marginTop: 20 }} aria-busy={loading}>
         <h2>Average salary (USD)</h2>
         <table>
           <thead>
@@ -83,16 +105,20 @@ export function Insights() {
               <th>Average</th>
             </tr>
           </thead>
-          <tbody>
-            {avg.map((row) => (
-              <tr key={row.group}>
-                <td>{row.group}</td>
-                <td>{row.headcount}</td>
-                <td>{row.paid_headcount}</td>
-                <td>{formatUsd(row.avg_salary_usd)}</td>
-              </tr>
-            ))}
-          </tbody>
+          {loading ? (
+            <TableSkeleton rows={6} cols={4} />
+          ) : (
+            <tbody>
+              {avg.map((row) => (
+                <tr key={row.group}>
+                  <td>{row.group}</td>
+                  <td>{row.headcount}</td>
+                  <td>{row.paid_headcount}</td>
+                  <td>{formatUsd(row.avg_salary_usd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          )}
         </table>
       </div>
     </div>

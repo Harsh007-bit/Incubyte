@@ -46,6 +46,65 @@ h2 { font-size: 22px; margin: 0 0 12px; }
 
 .toolbar, .form-grid { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
 .toolbar { margin-bottom: 18px; }
+.toolbar-search { flex: 1 1 220px; min-width: 180px; }
+.toolbar-search input { min-width: 0; width: 100%; }
+.filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.filters-toggle .chevron {
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  margin-top: -3px;
+}
+.filters-toggle[aria-expanded="true"] .chevron {
+  transform: rotate(-135deg);
+  margin-top: 3px;
+}
+.filters-count {
+  min-width: 1.4em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+.filters-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: -6px 0 16px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.skel {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #ebe4d6 0%, #f7f1e6 45%, #ebe4d6 100%);
+  background-size: 220% 100%;
+  animation: skel-shimmer 1.2s ease-in-out infinite;
+}
+.skel-mid { width: 64%; }
+.skel-wide { width: 86%; }
+.skel-lg { height: 28px; width: 48%; margin: 8px 0; }
+.skel-metric { height: 36px; width: 40%; margin-top: 10px; }
+.skel-row td { border-bottom-color: transparent; }
+@keyframes skel-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
 label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 input, select {
   background: var(--card);
@@ -94,7 +153,25 @@ tr:hover td { background: #faf6ee; }
   padding: 12px 14px;
   color: var(--muted);
 }
-.pager-nav { display: flex; gap: 8px; }
+.pager-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+.pager-jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.pager-jump label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.pager-jump input {
+  min-width: 64px;
+  width: 72px;
+  padding: 6px 8px;
+}
+.pager-of { color: var(--muted); }
 .pager-size {
   display: flex;
   align-items: center;

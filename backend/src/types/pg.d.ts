@@ -10,7 +10,11 @@ declare module "pg" {
   }
 
   export class Pool {
-    constructor(config?: { connectionString?: string });
+    constructor(config?: {
+      connectionString?: string;
+      max?: number;
+      ssl?: boolean | { rejectUnauthorized?: boolean };
+    });
     query<R = Record<string, unknown>>(text: string, values?: unknown[]): Promise<QueryResult<R>>;
     connect(): Promise<PoolClient>;
     end(): Promise<void>;

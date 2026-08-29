@@ -1,7 +1,7 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 
-import { createApp } from "../src/app.js";
+import { createApp } from "../src/http.js";
 import { EmployeeService } from "../src/services/employees.js";
 import {
   MemoryEmployeeRepository,
@@ -23,6 +23,21 @@ function http(employees = new MemoryEmployeeRepository()) {
 }
 
 describe("http input", () => {
+  it("honours page and page_size", async () => {
+    const { employees, app } = http();
+    const service = new EmployeeService(employees);
+    for (let i = 0; i < 12; i += 1) {
+      await hire(service, { email: `p${i}@acme.test`, name: `Person ${String(i).padStart(2, "0")}` });
+    }
+    const page2 = await request(app).get("/api/employees?page=2&page_size=5");
+    expect(page2.status).toBe(200);
+    expect(page2.body.page).toBe(2);
+    expect(page2.body.page_size).toBe(5);
+    expect(page2.body.items).toHaveLength(5);
+    const page1 = await request(app).get("/api/employees?page=1&page_size=5");
+    expect(page1.body.items[0].id).not.toBe(page2.body.items[0].id);
+  });
+
   it("treats a non-numeric page as page 1", async () => {
     const { employees, app } = http();
     await hire(new EmployeeService(employees));

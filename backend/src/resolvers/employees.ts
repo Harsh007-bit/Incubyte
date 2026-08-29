@@ -5,7 +5,7 @@ import type { Employee, SalaryRecord } from "../common/types.js";
 import type { EmployeeService } from "../services/employees.js";
 import type { SalaryService } from "../services/salaries.js";
 import { parseEmployeeCsv } from "../utils/csv.js";
-import { queryValues } from "../utils/query.js";
+import { queryParam, queryValues } from "../utils/query.js";
 import { createEmployeeBody, importCsvBody, updateEmployeeBody } from "../validators/employees.js";
 import { parseAmount, salaryBody } from "../validators/salaries.js";
 
@@ -21,7 +21,7 @@ function salaryJson(record: SalaryRecord) {
   };
 }
 
-function positiveInt(value: unknown, fallback: number, max = fallback): number {
+function positiveInt(value: unknown, fallback: number, max = Number.MAX_SAFE_INTEGER): number {
   const n = Number(value);
   if (!Number.isInteger(n) || n < 1) return fallback;
   return Math.min(max, n);
@@ -52,8 +52,8 @@ export function employeeRoutes(deps: {
 
   router.get("/", async (req, res, next) => {
     try {
-      const page = positiveInt(req.query.page, 1);
-      const pageSize = positiveInt(req.query.page_size, PAGE_SIZE_DEFAULT, PAGE_SIZE_MAX);
+      const page = positiveInt(queryParam(req, "page_index") ?? queryParam(req, "page"), 1);
+      const pageSize = positiveInt(queryParam(req, "page_size"), PAGE_SIZE_DEFAULT, PAGE_SIZE_MAX);
       const { items, total } = await deps.employees.listPage({
         names: queryValues(req.query.q),
         countries: queryValues(req.query.country),

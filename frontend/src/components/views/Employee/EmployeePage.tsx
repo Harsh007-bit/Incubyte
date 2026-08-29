@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { api } from "../../../api";
+import { Skeleton } from "../../Skeleton";
 import { formatMoney } from "../../../utils/money";
 import type { Employee, Meta, Salary } from "../../../models/types";
 
@@ -77,7 +78,35 @@ export function EmployeePage() {
   }
 
   if (!person) {
-    return <p className="lede">{error ?? "Loading…"}</p>;
+    if (error) return <p className="error">{error}</p>;
+    return (
+      <div aria-busy="true">
+        <p>
+          <Link to="/">← Directory</Link>
+        </p>
+        <Skeleton className="skel-lg" />
+        <p className="lede">
+          <Skeleton className="skel-wide" />
+        </p>
+        <div className="profile">
+          <section className="card profile-pay">
+            <h2>Current pay</h2>
+            <Skeleton className="skel-lg" />
+            <Skeleton className="skel-mid" />
+            <h2>History</h2>
+            <Skeleton className="skel-wide" />
+            <Skeleton className="skel-mid" />
+            <Skeleton className="skel-wide" />
+          </section>
+          <section className="card">
+            <h2>Profile</h2>
+            <Skeleton className="skel-wide" />
+            <Skeleton className="skel-mid" />
+            <Skeleton className="skel-wide" />
+          </section>
+        </div>
+      </div>
+    );
   }
 
   return (

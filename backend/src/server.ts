@@ -1,4 +1,6 @@
-import { createApp } from "./app.js";
+import express from "express";
+
+import { createApp } from "./http.js";
 import { config } from "./config.js";
 import { PgEmployeeRepository } from "./database/repos/pgEmployees.js";
 import { PgFxRepository } from "./database/repos/pgFx.js";
@@ -20,6 +22,8 @@ const app = createApp({
 const server = app.listen(config.port, () => {
   console.log(`ACME salary API on http://localhost:${config.port}`);
 });
+
+export default app;
 
 async function shutdown() {
   server.close();

@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .env
+.env.local
+.env*.local
+.vercel
 .venv/
 .pytest_cache/
 *.db

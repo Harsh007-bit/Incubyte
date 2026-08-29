@@ -4,7 +4,11 @@ Web app for one HR manager to look up ~10,000 people, change pay without
 losing history, and see how the org spends on salary.
 
 Docs first: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md),
-[docs/DESIGN.md](docs/DESIGN.md), [docs/AI_NOTES.md](docs/AI_NOTES.md).
+[docs/DESIGN.md](docs/DESIGN.md),
+[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) (what actually shipped),
+[docs/AI_NOTES.md](docs/AI_NOTES.md).
+
+Live: https://acme-pay.vercel.app
 
 ## Stack
 

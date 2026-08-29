@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createApp } from "../src/app.js";
+import { createApp } from "../src/http.js";
 import { PgEmployeeRepository } from "../src/database/repos/pgEmployees.js";
 import { PgFxRepository } from "../src/database/repos/pgFx.js";
 import { PgSalaryRepository } from "../src/database/repos/pgSalaries.js";
