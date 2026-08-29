@@ -8,7 +8,8 @@ Docs first: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md),
 [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) (what actually shipped),
 [docs/AI_NOTES.md](docs/AI_NOTES.md).
 
-Live: https://acme-pay.vercel.app
+Live: https://acme-pay.vercel.app  
+API: https://acme-pay-api.vercel.app/api/health
 
 ## Stack
 
