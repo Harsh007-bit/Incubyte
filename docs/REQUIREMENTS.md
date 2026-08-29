@@ -154,8 +154,8 @@ TECHNOLOGY DIRECTION
 A modular monolithic architecture is sufficient for the MVP. PostgreSQL
 gives us real DECIMAL and UUID types, and it is the database I would
 actually run if this left the assessment. Domain logic stays independent
-of Prisma so the persistence layer can change without rewriting salary
-rules.
+of the SQL layer so the persistence can change without rewriting
+salary rules.
 
 SUCCESS CRITERIA
 ------------------

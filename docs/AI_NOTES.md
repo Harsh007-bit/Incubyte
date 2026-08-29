@@ -21,12 +21,15 @@ WHAT I REJECTED
 2. Stored USD at write time — reports use the current rate at query
    time (DESIGN 4.1).
 3. Redis for 10k rows — not needed.
-4. Testing against a live Postgres for the seven business-behavior
-   cases. Those tests hit in-memory repositories so they stay fast and
-   deterministic. Prisma is the production adapter, not the test
-   harness.
+4. Prisma / any ORM. The schema is small. Parameterized SQL against
+   Postgres is enough, and the unique effective_from rule should live
+   in the database, not in an ORM mapping.
+
+5. Testing the seven business-behavior cases against a live database.
+   Those tests should hit in-memory repositories so they stay fast and
+   deterministic.
 
 WHAT I KEPT
 -----------
-- Same schema invariants and the same seven tests.
-- Routes mounted under /api so the SPA and API can share a host.
+- Same schema invariants from DESIGN.md.
+- Routes under /api so the SPA and API can share a host.

@@ -20,7 +20,7 @@ Modular monolith. No caching layer, no background workers, no separate
 analytics store — see PRD's "Deliberately Out of Scope" for why.
 
 Domain logic (salary rules, aggregation logic) is kept independent of
-the persistence layer so Prisma/PostgreSQL is a delivery choice, not
+the persistence layer so PostgreSQL is a delivery choice, not
 something the salary rules know about.
 
 Backend internal structure follows a layered boundary rather than a flat
@@ -47,7 +47,7 @@ Suggested module layout (created as needed, not for aesthetics):
     salaries/    routes, service, repository
     analytics/   routes, service
     fx/          service
-    shared/      prisma, constants, errors
+    shared/      db, constants, errors
 
 2. DATABASE SCHEMA
 ---------------------
