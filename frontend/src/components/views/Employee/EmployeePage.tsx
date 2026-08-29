@@ -3,15 +3,18 @@ import { Link, useParams } from "react-router-dom";
 
 import { api } from "../../../api";
 import { Skeleton } from "../../Skeleton";
+import { useSnackBar } from "../../SnackBar/SnackBarContext";
+import { SnackBarVariant } from "../../SnackBar/SnackbarWrapper";
 import { formatMoney } from "../../../utils/money";
 import type { Employee, Meta, Salary } from "../../../models/types";
 
 export function EmployeePage() {
   const { id } = useParams<{ id: string }>();
+  const snackbar = useSnackBar();
   const [person, setPerson] = useState<Employee | null>(null);
   const [history, setHistory] = useState<Salary[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function refresh() {
     if (!id) return;
@@ -21,8 +24,10 @@ export function EmployeePage() {
   }
 
   useEffect(() => {
-    api.meta().then(setMeta).catch((err: Error) => setError(err.message));
-    refresh().catch((err: Error) => setError(err.message));
+    api.meta().then(setMeta).catch((err: Error) =>
+      snackbar({ message: err.message, variant: SnackBarVariant.ERROR }),
+    );
+    refresh().catch((err: Error) => setLoadError(err.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -31,7 +36,6 @@ export function EmployeePage() {
     if (!person) return;
     const form = new FormData(event.currentTarget);
     try {
-      setError(null);
       await api.updateEmployee(person.id, {
         name: String(form.get("name")),
         email: String(form.get("email")),
@@ -40,27 +44,29 @@ export function EmployeePage() {
         designation: String(form.get("designation")),
       });
       await refresh();
+      snackbar({ message: "Profile saved", variant: SnackBarVariant.SUCCESS });
     } catch (err) {
-      setError((err as Error).message);
+      snackbar({ message: (err as Error).message, variant: SnackBarVariant.ERROR });
     }
   }
 
   async function onSalary(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!id) return;
-    const form = new FormData(event.currentTarget);
+    const formEl = event.currentTarget;
+    const form = new FormData(formEl);
     try {
-      setError(null);
       await api.addSalary(id, {
         base_amount: String(form.get("base_amount")),
         currency: String(form.get("currency")),
         effective_from: String(form.get("effective_from")),
         reason: String(form.get("reason")),
       });
-      event.currentTarget.reset();
+      formEl.reset();
       await refresh();
+      snackbar({ message: "Salary record added", variant: SnackBarVariant.SUCCESS });
     } catch (err) {
-      setError((err as Error).message);
+      snackbar({ message: (err as Error).message, variant: SnackBarVariant.ERROR });
     }
   }
 
@@ -69,16 +75,16 @@ export function EmployeePage() {
     const next = person.status === "active" ? "inactive" : "active";
     if (!window.confirm(`Mark ${person.name} as ${next}?`)) return;
     try {
-      setError(null);
       await api.updateEmployee(person.id, { status: next });
       await refresh();
+      snackbar({ message: `Marked ${next}`, variant: SnackBarVariant.SUCCESS });
     } catch (err) {
-      setError((err as Error).message);
+      snackbar({ message: (err as Error).message, variant: SnackBarVariant.ERROR });
     }
   }
 
   if (!person) {
-    if (error) return <p className="error">{error}</p>;
+    if (loadError) return <p className="error">{loadError}</p>;
     return (
       <div aria-busy="true">
         <p>
@@ -119,7 +125,6 @@ export function EmployeePage() {
         {person.employee_code} · {person.email} · {person.designation} · {person.department} ·{" "}
         {person.country_code}
       </p>
-      {error && <p className="error">{error}</p>}
 
       <div className="profile">
         <section className="card profile-pay">

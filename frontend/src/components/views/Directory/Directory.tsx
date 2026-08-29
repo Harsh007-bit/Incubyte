@@ -13,6 +13,8 @@ import {
   type FilterChip,
 } from "./filters";
 import { TableSkeleton } from "../../Skeleton";
+import { useSnackBar } from "../../SnackBar/SnackBarContext";
+import { SnackBarVariant } from "../../SnackBar/SnackbarWrapper";
 import { formatMoney } from "../../../utils/money";
 import type { Employee, Meta } from "../../../models/types";
 import { HireModal } from "./HireModal";
@@ -31,12 +33,12 @@ export function Directory() {
   const [countries, setCountries] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>(["active"]);
-  const [error, setError] = useState<string | null>(null);
   const [hiring, setHiring] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pageDraft, setPageDraft] = useState("1");
   const requestId = useRef(0);
+  const snackbar = useSnackBar();
 
   const nameTerms = pushUnique(names, debouncedDraft);
   const chips = activeFilterChips({
@@ -51,7 +53,6 @@ export function Directory() {
   async function load(nextPage: number, queryNames = nameTerms) {
     const id = ++requestId.current;
     setLoading(true);
-    setError(null);
     try {
       const result = await api.employees({
         q: queryNames,
@@ -67,7 +68,7 @@ export function Directory() {
       setPage(result.page);
     } catch (err) {
       if (id !== requestId.current) return;
-      setError((err as Error).message);
+      snackbar({ message: (err as Error).message, variant: SnackBarVariant.ERROR });
     } finally {
       if (id === requestId.current) setLoading(false);
     }
@@ -88,7 +89,9 @@ export function Directory() {
   }
 
   useEffect(() => {
-    api.meta().then(setMeta).catch((err: Error) => setError(err.message));
+    api.meta().then(setMeta).catch((err: Error) =>
+      snackbar({ message: err.message, variant: SnackBarVariant.ERROR }),
+    );
   }, []);
 
   useEffect(() => {
@@ -149,7 +152,6 @@ export function Directory() {
         Search the 10,000-person directory. Compensation is optional at hire — you can
         add pay later.
       </p>
-      {error && <p className="error">{error}</p>}
 
       <form
         className="toolbar"

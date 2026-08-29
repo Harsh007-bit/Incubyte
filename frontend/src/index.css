@@ -246,6 +246,54 @@ tr:hover td { background: #faf6ee; }
 .error { color: var(--warn); margin: 8px 0; }
 .empty { padding: 28px; color: var(--muted); }
 
+.snackbar-stack {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.snackbar {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  line-height: 1.4;
+  animation: snackbar-in 180ms ease-out;
+}
+.snackbar-success {
+  background: var(--accent);
+  color: #f7f3ea;
+}
+.snackbar-error {
+  background: #8a3b12;
+  color: #faf3ec;
+}
+.snackbar-dismiss {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.8;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.snackbar-dismiss:hover { opacity: 1; }
+@keyframes snackbar-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

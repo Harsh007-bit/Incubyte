@@ -1,6 +1,8 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 
 import { api } from "../../../api";
+import { useSnackBar } from "../../SnackBar/SnackBarContext";
+import { SnackBarVariant } from "../../SnackBar/SnackbarWrapper";
 import type { Meta } from "../../../models/types";
 
 const SAMPLE_CSV = `name,email,country_code,department,designation
@@ -28,6 +30,7 @@ export function HireModal({
   const [importing, setImporting] = useState(false);
   const [created, setCreated] = useState<number | null>(null);
   const [rowErrors, setRowErrors] = useState<ImportError[]>([]);
+  const snackbar = useSnackBar();
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -56,10 +59,13 @@ export function HireModal({
         department: String(form.get("department")),
         designation: String(form.get("designation")),
       });
+      snackbar({ message: "Person added", variant: SnackBarVariant.SUCCESS });
       onHired();
       onClose();
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      snackbar({ message, variant: SnackBarVariant.ERROR });
     }
   }
 
@@ -77,7 +83,9 @@ export function HireModal({
 
   async function onImport() {
     if (!csv.trim()) {
-      setError("Choose a CSV file first");
+      const message = "Choose a CSV file first";
+      setError(message);
+      snackbar({ message, variant: SnackBarVariant.ERROR });
       return;
     }
     try {
@@ -87,9 +95,22 @@ export function HireModal({
       setCreated(result.created);
       setRowErrors(result.errors);
       if (result.created > 0) onHired();
-      if (result.errors.length === 0) onClose();
+      if (result.errors.length === 0) {
+        snackbar({
+          message: `Created ${result.created} ${result.created === 1 ? "person" : "people"}`,
+          variant: SnackBarVariant.SUCCESS,
+        });
+        onClose();
+      } else {
+        snackbar({
+          message: `Created ${result.created}, ${result.errors.length} row${result.errors.length === 1 ? "" : "s"} failed`,
+          variant: SnackBarVariant.ERROR,
+        });
+      }
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message;
+      setError(message);
+      snackbar({ message, variant: SnackBarVariant.ERROR });
     } finally {
       setImporting(false);
     }

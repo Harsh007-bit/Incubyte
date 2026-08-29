@@ -2,21 +2,22 @@ import { useEffect, useState } from "react";
 
 import { api } from "../../../api";
 import { Skeleton, TableSkeleton } from "../../Skeleton";
+import { useSnackBar } from "../../SnackBar/SnackBarContext";
+import { SnackBarVariant } from "../../SnackBar/SnackbarWrapper";
 import { formatUsd, sumUsd } from "../../../utils/money";
 import type { AvgRow, HeadcountRow, SpendRow } from "../../../models/types";
 
 export function Insights() {
+  const snackbar = useSnackBar();
   const [groupBy, setGroupBy] = useState("country");
   const [headcount, setHeadcount] = useState<HeadcountRow[]>([]);
   const [spend, setSpend] = useState<SpendRow[]>([]);
   const [avg, setAvg] = useState<AvgRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setError(null);
     Promise.all([api.headcount(groupBy), api.spend(groupBy), api.avgSalary(groupBy)])
       .then(([h, s, a]) => {
         if (cancelled) return;
@@ -25,7 +26,7 @@ export function Insights() {
         setAvg(a);
       })
       .catch((err: Error) => {
-        if (!cancelled) setError(err.message);
+        if (!cancelled) snackbar({ message: err.message, variant: SnackBarVariant.ERROR });
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -33,7 +34,7 @@ export function Insights() {
     return () => {
       cancelled = true;
     };
-  }, [groupBy]);
+  }, [groupBy, snackbar]);
 
   const people = headcount.reduce((sum, row) => sum + row.headcount, 0);
   const totalSpend = sumUsd(spend.map((row) => row.spend_usd));
@@ -46,7 +47,6 @@ export function Insights() {
         Live totals in USD at the current rate. Inactive people drop out of spend.
         People without a salary stay in headcount.
       </p>
-      {error && <p className="error">{error}</p>}
 
       <div className="toolbar">
         <label>
