@@ -60,26 +60,30 @@ employees
   country_code       TEXT NOT NULL
   department         TEXT NOT NULL
   designation        TEXT NOT NULL
-  status             TEXT NOT NULL      -- 'active' / 'inactive'
+  status             TEXT NOT NULL
+                         CHECK (status IN ('active', 'inactive'))
   created_at         TIMESTAMP NOT NULL
   updated_at         TIMESTAMP NOT NULL
+
+  UNIQUE INDEX idx_employees_email ON LOWER(email)
 
 salary_records
   id                 UUID PK
   employee_id        UUID FK NOT NULL -> employees.id
   base_amount        DECIMAL(12,2) NOT NULL
+                         CHECK (base_amount > 0)
   currency           TEXT NOT NULL
   effective_from     DATE NOT NULL
   reason             TEXT NOT NULL
+                         CHECK (length(trim(reason)) > 0)
   created_at         TIMESTAMP NOT NULL
 
   UNIQUE(employee_id, effective_from)
 
 exchange_rates
-  id                 UUID PK
-  currency           TEXT NOT NULL
+  currency           TEXT PRIMARY KEY
   rate_to_usd        DECIMAL(12,6) NOT NULL
-  set_at             TIMESTAMP NOT NULL
+  updated_at         TIMESTAMP NOT NULL
 
 Notes on the schema:
 
@@ -88,7 +92,13 @@ Notes on the schema:
 - UNIQUE(employee_id, effective_from) is a deliberate invariant: without
   it, two salary records could share the same effective date and
   "current salary" would be ambiguous. With it, current salary is a
-  simple, deterministic query (see section 4.2).
+  simple, deterministic query (see section 4.2). That UNIQUE constraint
+  already creates an index — I am not adding a second one on the same
+  columns.
+- Email uniqueness is case-insensitive (LOWER(email)). ada@acme.com and
+  Ada@acme.com are the same person to HR.
+- CHECK constraints sit under the API. Zod can be skipped or wrong;
+  Postgres still refuses a zero salary or an empty reason.
 - "Current salary" is derived at query time, not stored as a separate
   mutable flag — this avoids a second source of truth that could drift
   out of sync with the actual latest record.
@@ -116,42 +126,30 @@ that a caching layer would add complexity without a measurable benefit.
 4. DESIGN DECISIONS
 -----------------------
 
-4.1 Currency conversion: current rate vs. historical rate
+4.1 Currency conversion: a fixed table, current rate at query time
 
-The PRD states that cross-country averages and spend figures use USD
-conversion via a fixed, versioned exchange-rate table. Two ways to apply
-that table:
+The MVP uses a fixed exchange-rate table. One row per currency. Reports
+use the currently configured rate at query time. Salary records keep
+their original amount and currency. Historical report reconstruction
+("what did this dashboard show on July 15") is out of scope.
 
-  - Current rate at query time: every salary, regardless of when it was
-    recorded, is converted using today's rate.
-  - Rate applicable on the salary's effective date: each salary record
-    is converted using whatever rate was active when that salary took
-    effect.
+  currency     rate_to_usd
+  USD          1.000000
+  INR          0.012000
+  EUR          1.080000
+  GBP          1.270000
 
-Decision: current rate at query time.
+I am not versioning rates. A versioned table with set_at / "latest
+active" implies an active flag or an effective date I would then have
+to explain and test. The assignment does not ask for historical
+financial reporting, so that complexity is not earned.
 
-Reasoning:
-  - The PRD frames USD conversion as being for comparison and reporting,
-    not historical financial accounting — FX-accurate books were never
-    the goal.
-  - Effective-date conversion would make two identical salaries (say
-    Rs.10L in 2024 and Rs.10L in 2025) show up as different USD figures
-    purely due to FX drift between those dates — adding noise to
-    "average salary by department" style insights rather than making
-    them more meaningful.
-  - A single current rate keeps every report reproducible and easy to
-    explain: "this is what someone earns right now, in USD terms."
-
-On versioning and reproducibility (corrected framing):
-Exchange rates are stored as immutable rate versions (each with a
-set_at timestamp), and the latest active rate is used for current
-reporting. This does NOT guarantee that a report can be reconstructed
-exactly as it appeared at an earlier point in time — e.g. "what did the
-report show on July 15" is not reliably answerable unless the report
-itself persisted which rate version it used at generation time. That
-level of historical report reproducibility is not part of the MVP; the
-assignment does not call for historical financial reporting, and adding
-it here would be over-engineering relative to what's asked.
+Why query-time conversion, not a stored USD column:
+  - The PRD frames USD as comparison and reporting, not books.
+  - Converting on the salary's effective date would make two identical
+    Rs.10L salaries look different in USD just because FX moved.
+  - One current rate is easy to explain: "this is what they earn now,
+    in USD terms."
 
 4.2 Duplicate effective dates and deterministic "current salary"
 
@@ -213,24 +211,38 @@ left as an implicit assumption in the aggregation logic.
   CREATE INDEX idx_employees_country ON employees(country_code);
   CREATE INDEX idx_employees_dept ON employees(department);
   CREATE INDEX idx_employees_status ON employees(status);
-  CREATE INDEX idx_salary_employee ON salary_records(employee_id, effective_from);
+  CREATE UNIQUE INDEX idx_employees_email ON employees (LOWER(email));
 
-These matter more as a demonstration of scale-awareness than as a real
-necessity at 10K rows — noted here so the reasoning is explicit rather
-than assumed.
+No extra index on salary_records(employee_id, effective_from).
+UNIQUE(employee_id, effective_from) already is that index.
+
+These filter indexes matter more as a demonstration of scale-awareness
+than as a real necessity at 10K rows — noted here so the reasoning is
+explicit rather than assumed.
 
 6. TESTING PHILOSOPHY
 -------------------------
 
-Not chasing an arbitrary coverage number (e.g. "100% coverage"). Instead:
+Not chasing an arbitrary coverage number. About 15–25 good tests is
+enough. Split by what they can actually prove:
 
-The highest-risk domain rules — salary history, effective-date handling
-and uniqueness, currency conversion, and analytics calculations — are
-covered by fast, deterministic unit tests. API/database integration
-tests verify the important end-to-end boundaries (route -> service ->
-repository -> DB).
+  Unit tests (fast, in-memory / domain)
+    amount > 0, currency supported, reason required
+    current-salary selection (including future-dated rows)
+    inactive employees drop out of spend
+    analytics math
+    hire without salary
 
-Representative test cases:
+  Integration tests (real PostgreSQL + pg + Supertest)
+    schema, FK, CHECK constraints
+    UNIQUE(employee_id, effective_from) — a fake repo cannot prove this
+    case-insensitive unique email
+    salary insert + employee retrieval + analytics SQL
+
+An in-memory repository can prove the service asked for a reject. It
+cannot prove Postgres enforces UNIQUE. That test hits a real database.
+
+Representative cases:
 
   Test 1 - Salary history isn't overwritten
     Given employee has Rs.10L salary
@@ -247,10 +259,11 @@ Representative test cases:
     When current salary is requested in August
     Then Rs.10L is returned
 
-  Test 4 - Duplicate effective date is rejected
+  Test 4 - Duplicate effective date is rejected (integration)
     Given employee already has a salary effective Jul 1
     When another salary is added for Jul 1
-    Then the request is rejected (UNIQUE constraint)
+    Then the request is rejected by UNIQUE
+    And no second row exists
 
   Test 5 - Inactive employees excluded from spend
     Given employee is inactive
@@ -262,14 +275,30 @@ Representative test cases:
     When spend is calculated
     Then USD value = 12000
 
-  Test 7 - Employee without a salary record
+  Test 7 - Employee without a salary record, in analytics
     Given employee has no salary_records
     When headcount and average salary are calculated
     Then employee is included in headcount, excluded from average
 
+  Test 8 - Hire without salary
+    Given no salary
+    When employee is created
+    Then the employee exists
+    And current salary is null
+
+  Test 9 - Inactive employee still has history
+    Given employee has salary history
+    When employee becomes inactive
+    Then salary history remains accessible
+
+  Test 10 - Invalid salary rejected
+    Given amount = 0
+    When salary is added
+    Then the request is rejected
+    And no salary record is created
+
 These are business-behavior tests, not tests that merely assert HTTP
-status codes — this is the core of the TDD/craftsperson story for this
-assessment.
+status codes.
 
 7. STRETCH GOAL: "ASK ABOUT COMPENSATION" (POST-MVP)
 --------------------------------------------------------

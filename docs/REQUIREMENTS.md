@@ -37,8 +37,9 @@ Employees will not be hard-deleted so that historical salary information
 remains intact.
 
 Basic domain validation applies to employee profiles: name and email are
-required and non-empty, email must be valid format, country_code must be
-a recognized value, and status must be one of {active, inactive}.
+required and non-empty, email must be valid format and unique
+(case-insensitive), country_code must be a recognized value, and status
+must be one of {active, inactive}.
 
 3. Salary Management
 
@@ -88,9 +89,10 @@ HR can view:
   - Average salary by country and department.
 
 Because employees may be paid in different currencies, all cross-country
-averages and spend figures use USD conversion based on a fixed,
-versioned exchange-rate table. Original salary amounts and currencies
-are always preserved alongside the converted values.
+averages and spend figures use USD conversion from a fixed
+exchange-rate table. Reports use the currently configured rate at query
+time. Original salary amounts and currencies are always preserved.
+Historical report reconstruction is out of scope.
 
 ASSUMPTIONS
 -----------
@@ -108,6 +110,9 @@ ASSUMPTIONS
 - USD conversion is intended for comparison and reporting and does not
   modify the employee's original compensation.
 - "Spend" refers to current annual salary cost.
+- Email is unique across employees, case-insensitive.
+- Validation is layered: UI, API (Zod), then database constraints. The
+  database is the last line of defense, not the only one.
 
 DELIBERATELY OUT OF SCOPE
 --------------------------
@@ -121,6 +126,9 @@ DELIBERATELY OUT OF SCOPE
   dataset; export can be added later if needed.
 - Live foreign-exchange integration — a fixed rate table keeps reporting
   deterministic and avoids introducing an external dependency.
+- Versioned / historical FX rates — the assignment does not ask for
+  historical financial reporting. One current rate per currency is
+  enough.
 - Redis, background workers, and a separate analytics warehouse — the
   expected dataset of 10,000 employees does not justify this
   operational complexity for the MVP.
@@ -147,15 +155,17 @@ not appear in Success Criteria below.
 
 TECHNOLOGY DIRECTION
 ----------------------
-- Backend: Node.js + TypeScript
+- Frontend: React + TypeScript + Vite
+- Backend: Node.js + TypeScript + Express
 - Database: PostgreSQL
-- Frontend: React + TypeScript
+- Driver: pg
+- Validation: Zod
+- Tests: Vitest + Supertest
 
 A modular monolithic architecture is sufficient for the MVP. PostgreSQL
-gives us real DECIMAL and UUID types, and it is the database I would
-actually run if this left the assessment. Domain logic stays independent
-of the SQL layer so the persistence can change without rewriting
-salary rules.
+gives us real DECIMAL, UUID, UNIQUE, and CHECK constraints. Domain
+logic stays independent of the SQL layer so the persistence can change
+without rewriting salary rules. No ORM.
 
 SUCCESS CRITERIA
 ------------------
