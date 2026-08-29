@@ -27,7 +27,7 @@ Backend internal structure follows a layered boundary rather than a flat
 routes file, so business rules are easy to unit-test in isolation from
 HTTP and the database:
 
-  HTTP (routes)
+  HTTP (resolvers)
       -> Application/service layer
       -> Domain/business rules
       -> Persistence (repository)
@@ -40,14 +40,26 @@ Example flow:
       -> SalaryRepository.create(...)
       -> PostgreSQL
 
-Suggested module layout (created as needed, not for aesthetics):
+Suggested module layout (created as needed, not for aesthetics).
+The backend is a modular monolith using the same layer names as a
+typical Coastr Node service — common, resolvers, services, validators,
+database/repos, utils — without splitting into microservices:
 
   backend/src/
-    employees/   routes, service, repository
-    salaries/    routes, service, repository
-    analytics/   routes, service
-    fx/          service
-    shared/      db, constants, errors
+    server.ts, app.ts, db.ts, config.ts
+    common/           constants, types, errors, dates
+    resolvers/        HTTP handlers (employees, analytics)
+    services/         application logic
+    validators/       Zod bodies + domain rules
+    database/repos/   interfaces, Postgres, in-memory fakes
+    utils/            csv, query helpers
+
+  frontend/src/
+    components/views/ Directory, Employee, Insights
+    api/              HTTP client
+    models/           shared UI types
+    utils/            money formatting
+    routes/
 
 2. DATABASE SCHEMA
 ---------------------
@@ -111,6 +123,7 @@ Notes on the schema:
   GET  /employees?country=IN&department=Engineering&status=active&page=1
   GET  /employees/{id}
   POST /employees
+  POST /employees/import                 -- CSV bulk hire; partial success
   PATCH /employees/{id}
   GET  /employees/{id}/salary-history
   POST /employees/{id}/salary            -- appends a new salary_records row
@@ -119,9 +132,11 @@ Notes on the schema:
   GET  /analytics/avg-salary?groupBy=department
   GET  /analytics/spend?groupBy=country
 
-All /analytics/* endpoints run live aggregation queries against
-PostgreSQL. At 10,000 rows with proper indexing, this is fast enough
-that a caching layer would add complexity without a measurable benefit.
+Analytics load the active directory and current salaries, then group in
+the service layer. At 10,000 rows that is a couple of queries and a
+short in-memory pass — a warehouse or extra SQL aggregation layer would
+not change the numbers. Current salary itself is still a query
+(effective_from <= today), not a stored flag.
 
 4. DESIGN DECISIONS
 -----------------------

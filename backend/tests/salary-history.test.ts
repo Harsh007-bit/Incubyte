@@ -1,7 +1,7 @@
-import Decimal from "decimal.js";
+import { Decimal } from "decimal.js";
 import { describe, expect, it } from "vitest";
 
-import { ConflictError, DomainError } from "../src/shared/errors.js";
+import { ConflictError, DomainError } from "../src/common/errors.js";
 import { hire, pay, world } from "./helpers.js";
 
 describe("salary history", () => {
@@ -73,6 +73,15 @@ describe("salary history", () => {
     const { employees, salaries } = world();
     const person = await hire(employees);
     await expect(pay(salaries, person.id, "0", "2026-01-01")).rejects.toBeInstanceOf(DomainError);
+    expect(await salaries.history(person.id)).toEqual([]);
+  });
+
+  it("rejects an impossible calendar date", async () => {
+    const { employees, salaries } = world();
+    const person = await hire(employees);
+    await expect(pay(salaries, person.id, "1000000", "2026-02-31")).rejects.toBeInstanceOf(
+      DomainError,
+    );
     expect(await salaries.history(person.id)).toEqual([]);
   });
 });

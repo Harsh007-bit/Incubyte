@@ -4,13 +4,13 @@ import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app.js";
-import { PgEmployeeRepository } from "../src/employees/pg-repository.js";
-import { PgFxRepository } from "../src/fx/pg-repository.js";
-import { FxService } from "../src/fx/service.js";
-import { PgSalaryRepository } from "../src/salaries/pg-repository.js";
-import { createPool, migrate } from "../src/shared/db.js";
+import { PgEmployeeRepository } from "../src/database/repos/pgEmployees.js";
+import { PgFxRepository } from "../src/database/repos/pgFx.js";
+import { PgSalaryRepository } from "../src/database/repos/pgSalaries.js";
+import { createPool, migrate } from "../src/db.js";
+import { FxService } from "../src/services/fx.js";
 
-const url = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
+const url = process.env.TEST_DATABASE_URL;
 const live = Boolean(url);
 
 describe.skipIf(!live)("postgres invariants", () => {
@@ -96,5 +96,11 @@ describe.skipIf(!live)("postgres invariants", () => {
     const employee = await hire();
     const detail = await request(app).get(`/api/employees/${employee.id}`);
     expect(detail.body.current_salary).toBeNull();
+  });
+
+  it("treats a malformed employee id as not found", async () => {
+    const response = await request(app).get("/api/employees/not-a-uuid");
+    expect(response.status).toBe(404);
+    expect(response.body.code).toBe("not_found");
   });
 });

@@ -9,6 +9,7 @@ services:
       - "5432:5432"
     volumes:
       - acme_pg:/var/lib/postgresql/data
+      - ./backend/sql/init-extra-dbs.sql:/docker-entrypoint-initdb.d/02-test-db.sql
 
 volumes:
   acme_pg:

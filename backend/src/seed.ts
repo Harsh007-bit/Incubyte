@@ -1,16 +1,16 @@
 import { randomUUID } from "node:crypto";
 
 import { faker } from "@faker-js/faker";
-import Decimal from "decimal.js";
+import { Decimal } from "decimal.js";
 
-import { PgFxRepository } from "./fx/pg-repository.js";
-import { FxService } from "./fx/service.js";
+import { PgFxRepository } from "./database/repos/pgFx.js";
+import { FxService } from "./services/fx.js";
 import {
   COUNTRY_CODES,
   COUNTRY_CURRENCY,
   DEPARTMENTS,
-} from "./shared/constants.js";
-import { migrate, pool } from "./shared/db.js";
+} from "./common/constants.js";
+import { migrate, pool } from "./db.js";
 
 const TOTAL = 10_000;
 const SEED = 42;
@@ -98,7 +98,7 @@ async function insert(
 
 async function run() {
   await migrate();
-  const existing = await pool.query("SELECT COUNT(*)::int AS count FROM employees");
+  const existing = await pool.query<{ count: number }>("SELECT COUNT(*)::int AS count FROM employees");
   if ((existing.rows[0]?.count ?? 0) > 0 && !process.argv.includes("--force")) {
     console.log("Database already has employees. Refusing to seed twice. Pass --force to replace.");
     return;
@@ -121,7 +121,7 @@ async function run() {
   for (let index = 1; index <= TOTAL; index += 1) {
     const countryRoll = rng() * weightSum;
     let acc = 0;
-    let country = COUNTRY_CODES[0];
+    let country: (typeof COUNTRY_CODES)[number] = COUNTRY_CODES[0];
     for (let i = 0; i < COUNTRY_CODES.length; i += 1) {
       acc += countryWeights[i];
       if (countryRoll <= acc) {

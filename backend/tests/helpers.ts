@@ -1,14 +1,14 @@
-import Decimal from "decimal.js";
+import { Decimal } from "decimal.js";
 
-import { AnalyticsService } from "../src/analytics/service.js";
-import { EmployeeService } from "../src/employees/service.js";
-import { FxService } from "../src/fx/service.js";
-import { SalaryService } from "../src/salaries/service.js";
+import { AnalyticsService } from "../src/services/analytics.js";
+import { EmployeeService } from "../src/services/employees.js";
+import { FxService } from "../src/services/fx.js";
+import { SalaryService } from "../src/services/salaries.js";
 import {
   MemoryEmployeeRepository,
   MemoryFxRepository,
   MemorySalaryRepository,
-} from "../src/shared/memory.js";
+} from "../src/database/repos/memory.js";
 
 export function world() {
   const employees = new MemoryEmployeeRepository();

@@ -1,8 +1,6 @@
-import { NavLink, Route, Routes } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
-import { Directory } from "./pages/Directory";
-import { EmployeePage } from "./pages/EmployeePage";
-import { Insights } from "./pages/Insights";
+import { AppRoutes } from "./routes";
 
 export function App() {
   return (
@@ -18,11 +16,7 @@ export function App() {
           <NavLink to="/insights">Insights</NavLink>
         </nav>
       </header>
-      <Routes>
-        <Route path="/" element={<Directory />} />
-        <Route path="/employees/:id" element={<EmployeePage />} />
-        <Route path="/insights" element={<Insights />} />
-      </Routes>
+      <AppRoutes />
     </div>
   );
 }

@@ -30,6 +30,8 @@ HR can:
   - Add a new employee (compensation is optional at creation time — an
     employee can be added first and have a salary record added later;
     hiring and setting pay are not required to be a single atomic step).
+  - Add several employees at once from a CSV (invalid rows are reported
+    and skipped; valid rows are still created).
   - Edit employee profile information.
   - Mark an employee as inactive.
 
@@ -122,8 +124,8 @@ DELIBERATELY OUT OF SCOPE
   without auth.
 - Payroll, tax, benefits, and approval workflows — these belong to a
   broader payroll/HR product.
-- CSV import/export — the seed script provides the required initial
-  dataset; export can be added later if needed.
+- CSV export — the seed script provides the required initial dataset;
+  download/export of the live directory can be added later if needed.
 - Live foreign-exchange integration — a fixed rate table keeps reporting
   deterministic and avoids introducing an external dependency.
 - Versioned / historical FX rates — the assignment does not ask for

@@ -2,22 +2,23 @@ import cors from "cors";
 import express from "express";
 import { ZodError } from "zod";
 
-import { analyticsRoutes } from "./analytics/routes.js";
-import { AnalyticsService } from "./analytics/service.js";
-import { employeeRoutes } from "./employees/routes.js";
-import type { EmployeeRepository } from "./employees/repository.js";
-import { EmployeeService } from "./employees/service.js";
-import type { FxRepository } from "./fx/repository.js";
-import { FxService } from "./fx/service.js";
-import type { SalaryRepository } from "./salaries/repository.js";
-import { SalaryService } from "./salaries/service.js";
+import { analyticsRoutes } from "./resolvers/analytics.js";
+import { AnalyticsService } from "./services/analytics.js";
+import { employeeRoutes } from "./resolvers/employees.js";
+import type { EmployeeRepository } from "./database/repos/employees.js";
+import { EmployeeService } from "./services/employees.js";
+import type { FxRepository } from "./database/repos/fx.js";
+import { FxService } from "./services/fx.js";
+import type { SalaryRepository } from "./database/repos/salaries.js";
+import { SalaryService } from "./services/salaries.js";
 import {
   COUNTRY_CODES,
   DEPARTMENTS,
   STATUSES,
   SUPPORTED_CURRENCIES,
-} from "./shared/constants.js";
-import { ConflictError, DomainError, NotFoundError } from "./shared/errors.js";
+} from "./common/constants.js";
+import { calendarDateToday } from "./common/dates.js";
+import { ConflictError, DomainError, NotFoundError } from "./common/errors.js";
 
 export function createApp(deps: {
   employees: EmployeeRepository;
@@ -25,7 +26,7 @@ export function createApp(deps: {
   rates: FxRepository;
   today?: () => string;
 }) {
-  const today = deps.today ?? (() => new Date().toISOString().slice(0, 10));
+  const today = deps.today ?? calendarDateToday;
   const employees = new EmployeeService(deps.employees);
   const salaries = new SalaryService(deps.employees, deps.salaries);
   const fx = new FxService(deps.rates);
@@ -33,7 +34,7 @@ export function createApp(deps: {
 
   const app = express();
   app.use(cors({ origin: ["http://localhost:5173", "http://127.0.0.1:5173"] }));
-  app.use(express.json());
+  app.use(express.json({ limit: "1mb" }));
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
@@ -48,7 +49,7 @@ export function createApp(deps: {
   });
   app.use(
     "/api/employees",
-    employeeRoutes({ employees, salaries, salaryRepo: deps.salaries, today }),
+    employeeRoutes({ employees, salaries, today }),
   );
   app.use("/api/analytics", analyticsRoutes({ analytics, today }));
 

@@ -32,3 +32,24 @@ CREATE INDEX IF NOT EXISTS idx_employees_country ON employees(country_code);
 CREATE INDEX IF NOT EXISTS idx_employees_dept ON employees(department);
 CREATE INDEX IF NOT EXISTS idx_employees_status ON employees(status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_employees_email ON employees (LOWER(email));
+
+DO $$ BEGIN
+    ALTER TABLE employees ADD CONSTRAINT employees_country_code_check
+        CHECK (country_code IN ('IN','US','GB','DE','SG','AU','CA','JP','NL','AE'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE employees ADD CONSTRAINT employees_department_check
+        CHECK (department IN (
+            'Engineering','Product','Design','Sales','Marketing','Finance',
+            'HR','Operations','Customer Success','Legal'
+        ));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE salary_records ADD CONSTRAINT salary_records_currency_check
+        CHECK (currency IN ('USD','INR','GBP','EUR','SGD','AUD','CAD','JPY','AED'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
