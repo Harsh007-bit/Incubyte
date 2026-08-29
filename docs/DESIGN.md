@@ -11,18 +11,17 @@ a requirements doc but matters when building or defending the design.
   React + TypeScript SPA
           |
           v
-  FastAPI backend (Python)
+  Node.js + TypeScript (Express)
           |
           v
-  SQLite
+  PostgreSQL
 
 Modular monolith. No caching layer, no background workers, no separate
 analytics store — see PRD's "Deliberately Out of Scope" for why.
 
 Domain logic (salary rules, aggregation logic) is kept independent of
-the persistence layer so SQLite could be swapped for PostgreSQL later
-without rewriting business rules — this is a design property, not a
-promise to build it.
+the persistence layer so Prisma/PostgreSQL is a delivery choice, not
+something the salary rules know about.
 
 Backend internal structure follows a layered boundary rather than a flat
 routes file, so business rules are easy to unit-test in isolation from
@@ -39,22 +38,22 @@ Example flow:
       -> SalaryService.add_salary(...)
       -> validate business rules (amount > 0, unique effective_from, ...)
       -> SalaryRepository.create(...)
-      -> SQLite
+      -> PostgreSQL
 
 Suggested module layout (created as needed, not for aesthetics):
 
-  backend/
-    employees/   routes, service, repository, models
-    salaries/    routes, service, repository, models
+  backend/src/
+    employees/   routes, service, repository
+    salaries/    routes, service, repository
     analytics/   routes, service
     fx/          service
-    shared/      database
+    shared/      prisma, constants, errors
 
 2. DATABASE SCHEMA
 ---------------------
 
 employees
-  id                 TEXT (UUID) PK
+  id                 UUID PK
   employee_code      TEXT UNIQUE NOT NULL
   name               TEXT NOT NULL
   email              TEXT NOT NULL
@@ -66,8 +65,8 @@ employees
   updated_at         TIMESTAMP NOT NULL
 
 salary_records
-  id                 TEXT (UUID) PK
-  employee_id        TEXT FK NOT NULL -> employees.id
+  id                 UUID PK
+  employee_id        UUID FK NOT NULL -> employees.id
   base_amount        DECIMAL(12,2) NOT NULL
   currency           TEXT NOT NULL
   effective_from     DATE NOT NULL
@@ -77,7 +76,7 @@ salary_records
   UNIQUE(employee_id, effective_from)
 
 exchange_rates
-  id                 TEXT (UUID) PK
+  id                 UUID PK
   currency           TEXT NOT NULL
   rate_to_usd        DECIMAL(12,6) NOT NULL
   set_at             TIMESTAMP NOT NULL
@@ -93,8 +92,8 @@ Notes on the schema:
 - "Current salary" is derived at query time, not stored as a separate
   mutable flag — this avoids a second source of truth that could drift
   out of sync with the actual latest record.
-- SQLite has no native UUID type; UUIDs are stored as TEXT. This is a
-  deliberate choice, not an oversight — see section 4.4.
+- PostgreSQL has native UUID and DECIMAL types. That is one reason I
+  switched off SQLite — see section 4.4.
 
 3. API DESIGN (representative)
 ---------------------------------
@@ -110,9 +109,9 @@ Notes on the schema:
   GET  /analytics/avg-salary?groupBy=department
   GET  /analytics/spend?groupBy=country
 
-All /analytics/* endpoints run live aggregation queries against SQLite.
-At 10,000 rows with proper indexing, this is fast enough that a caching
-layer would add complexity without a measurable benefit.
+All /analytics/* endpoints run live aggregation queries against
+PostgreSQL. At 10,000 rows with proper indexing, this is fast enough
+that a caching layer would add complexity without a measurable benefit.
 
 4. DESIGN DECISIONS
 -----------------------
@@ -187,14 +186,14 @@ being added first.
 
 4.4 Why UUIDs instead of integer IDs
 
-SQLite has no native UUID type, so UUIDs are stored as TEXT. This is a
-conscious trade-off, not a default:
+PostgreSQL has a native UUID type, so identifiers are stored as UUID,
+not as a string workaround.
 
 "UUIDs were chosen because the identifier isn't intended to encode
 ordering and it avoids coupling identifiers to database-generated
-sequences. For a 10,000-row SQLite application, the performance
-difference versus integer IDs is irrelevant. If simplicity were the
-priority, integer IDs would also be a perfectly reasonable choice."
+sequences. For a 10,000-row application, the performance difference
+versus integer IDs is irrelevant. If simplicity were the priority,
+integer IDs would also be a perfectly reasonable choice."
 
 4.5 Employees without a salary record
 
@@ -286,7 +285,7 @@ complete and tested:
                "filters": { "department": "Engineering" } }
         -> validation against known metrics/fields
         -> analytics service
-        -> SQLite
+        -> PostgreSQL
         -> deterministic result
 
 The LLM only interprets intent; it never generates or executes SQL

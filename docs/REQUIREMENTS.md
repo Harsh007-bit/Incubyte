@@ -147,15 +147,15 @@ not appear in Success Criteria below.
 
 TECHNOLOGY DIRECTION
 ----------------------
-- Backend: Python + FastAPI
-- Database: SQLite
+- Backend: Node.js + TypeScript
+- Database: PostgreSQL
 - Frontend: React + TypeScript
 
-A modular monolithic architecture is sufficient for the MVP. SQLite
-keeps the application simple to run and deploy while providing
-sufficient capacity for the expected dataset. The design keeps domain
-logic independent from infrastructure so the database can be replaced
-with PostgreSQL if future scale or concurrency requirements justify it.
+A modular monolithic architecture is sufficient for the MVP. PostgreSQL
+gives us real DECIMAL and UUID types, and it is the database I would
+actually run if this left the assessment. Domain logic stays independent
+of Prisma so the persistence layer can change without rewriting salary
+rules.
 
 SUCCESS CRITERIA
 ------------------
