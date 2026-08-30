@@ -12,13 +12,13 @@ export class MemoryEmployeeRepository implements EmployeeRepository {
     return this.rows.find((row) => row.id === id) ?? null;
   }
 
-  async getByCode(code: string) {
-    return this.rows.find((row) => row.employeeCode === code) ?? null;
+  private byCode(code: string) {
+    return this.rows.find((row) => row.employeeCode === code);
   }
 
-  async getByEmail(email: string) {
+  private byEmail(email: string) {
     const needle = email.toLowerCase();
-    return this.rows.find((row) => row.email.toLowerCase() === needle) ?? null;
+    return this.rows.find((row) => row.email.toLowerCase() === needle);
   }
 
   async add(employee: Employee) {
@@ -30,10 +30,10 @@ export class MemoryEmployeeRepository implements EmployeeRepository {
     const next =
       employee.employeeCode ||
       `ACME-${String((last ? Number(last.split("-")[1]) : 0) + 1).padStart(5, "0")}`;
-    if (await this.getByEmail(employee.email)) {
+    if (this.byEmail(employee.email)) {
       throw new ConflictError("email already exists");
     }
-    if (await this.getByCode(next)) {
+    if (this.byCode(next)) {
       throw new ConflictError(`employee_code ${next} already exists`);
     }
     const stored = { ...employee, employeeCode: next };
@@ -42,7 +42,7 @@ export class MemoryEmployeeRepository implements EmployeeRepository {
   }
 
   async save(employee: Employee) {
-    const other = await this.getByEmail(employee.email);
+    const other = this.byEmail(employee.email);
     if (other && other.id !== employee.id) {
       throw new ConflictError("email already exists");
     }

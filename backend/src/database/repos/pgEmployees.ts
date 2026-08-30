@@ -50,22 +50,6 @@ export class PgEmployeeRepository implements EmployeeRepository {
     return rows[0] ? toEmployee(rows[0]) : null;
   }
 
-  async getByCode(code: string) {
-    const { rows } = await this.db.query<Row>(
-      "SELECT * FROM employees WHERE employee_code = $1",
-      [code],
-    );
-    return rows[0] ? toEmployee(rows[0]) : null;
-  }
-
-  async getByEmail(email: string) {
-    const { rows } = await this.db.query<Row>(
-      "SELECT * FROM employees WHERE LOWER(email) = LOWER($1)",
-      [email],
-    );
-    return rows[0] ? toEmployee(rows[0]) : null;
-  }
-
   async add(employee: Employee) {
     const client = await this.db.connect();
     try {

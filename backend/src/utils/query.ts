@@ -15,9 +15,7 @@ export function queryValues(value: unknown): string[] {
 
 function firstString(value: unknown): string | undefined {
   if (Array.isArray(value)) return firstString(value[0]);
-  if (typeof value === "string") return value;
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  return undefined;
+  return typeof value === "string" ? value : undefined;
 }
 
 export function queryParam(

@@ -32,13 +32,9 @@ export function createApp(deps: {
   const fx = new FxService(deps.rates);
   const analytics = new AnalyticsService(deps.employees, deps.salaries, fx);
 
-  const corsOrigin = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN === "*"
-      ? true
-      : process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
-    : process.env.VERCEL
-      ? true
-      : ["http://localhost:5173", "http://127.0.0.1:5173"];
+  const corsOrigin = process.env.VERCEL
+    ? true
+    : ["http://localhost:5173", "http://127.0.0.1:5173"];
 
   const app = express();
   app.use(cors({ origin: corsOrigin }));

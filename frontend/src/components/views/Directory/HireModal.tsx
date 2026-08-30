@@ -176,7 +176,7 @@ export function HireModal({
               <label>
                 Country
                 <select name="country_code" defaultValue="IN" disabled={!meta}>
-                  {(meta?.country_codes ?? ["IN"]).map((code) => (
+                  {meta?.country_codes.map((code) => (
                     <option key={code}>{code}</option>
                   ))}
                 </select>
@@ -184,7 +184,7 @@ export function HireModal({
               <label>
                 Department
                 <select name="department" disabled={!meta}>
-                  {(meta?.departments ?? ["Engineering"]).map((name) => (
+                  {meta?.departments.map((name) => (
                     <option key={name}>{name}</option>
                   ))}
                 </select>

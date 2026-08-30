@@ -52,7 +52,7 @@ export function employeeRoutes(deps: {
 
   router.get("/", async (req, res, next) => {
     try {
-      const page = positiveInt(queryParam(req, "page_index") ?? queryParam(req, "page"), 1);
+      const page = positiveInt(queryParam(req, "page"), 1);
       const pageSize = positiveInt(queryParam(req, "page_size"), PAGE_SIZE_DEFAULT, PAGE_SIZE_MAX);
       const { items, total } = await deps.employees.listPage({
         names: queryValues(req.query.q),
