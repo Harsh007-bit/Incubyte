@@ -26,7 +26,7 @@ export function queryParam(
   const q = raw.includes("?") ? raw.slice(raw.indexOf("?") + 1) : "";
   if (q) {
     const fromUrl = new URLSearchParams(q).get(key);
-    if (fromUrl != null && fromUrl !== "") return fromUrl;
+    if (fromUrl) return fromUrl;
   }
   return firstString(req.query[key]);
 }

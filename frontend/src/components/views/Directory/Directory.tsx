@@ -75,7 +75,7 @@ export function Directory() {
   }
 
   function goToPage(next: number) {
-    const clamped = Math.min(pages, Math.max(1, Number.isInteger(next) ? next : 1));
+    const clamped = Math.min(pages, Math.max(1, next));
     void load(clamped);
   }
 

@@ -56,11 +56,11 @@ export class EmployeeService {
   ): Promise<Employee> {
     const employee = await this.get(id);
     const next = {
-      name: changes.name !== undefined ? changes.name.trim() : employee.name,
-      email: changes.email !== undefined ? changes.email.trim() : employee.email,
-      countryCode: changes.countryCode !== undefined ? changes.countryCode.trim() : employee.countryCode,
-      department: changes.department !== undefined ? changes.department.trim() : employee.department,
-      designation: changes.designation !== undefined ? changes.designation.trim() : employee.designation,
+      name: (changes.name ?? employee.name).trim(),
+      email: (changes.email ?? employee.email).trim(),
+      countryCode: (changes.countryCode ?? employee.countryCode).trim(),
+      department: (changes.department ?? employee.department).trim(),
+      designation: (changes.designation ?? employee.designation).trim(),
       status: changes.status ?? employee.status,
     };
     validateProfile(next);

@@ -52,11 +52,11 @@ export function EmployeePage() {
 
   async function onSalary(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!id) return;
+    if (!person) return;
     const formEl = event.currentTarget;
     const form = new FormData(formEl);
     try {
-      await api.addSalary(id, {
+      await api.addSalary(person.id, {
         base_amount: String(form.get("base_amount")),
         currency: String(form.get("currency")),
         effective_from: String(form.get("effective_from")),

@@ -44,7 +44,7 @@ export class SalaryService {
   }
 
   async current(employeeId: string, today: string): Promise<SalaryRecord | null> {
-    return currentSalary(await this.history(employeeId), today);
+    return currentSalary(await this.salaries.listForEmployee(employeeId), today);
   }
 
   currentForMany(employeeIds: string[], today: string) {

@@ -27,7 +27,7 @@ function positiveInt(value: unknown, fallback: number, max = Number.MAX_SAFE_INT
   return Math.min(max, n);
 }
 
-function employeeJson(employee: Employee, current: SalaryRecord | null) {
+function employeeJson(employee: Employee, current?: SalaryRecord | null) {
   return {
     id: employee.id,
     employee_code: employee.employeeCode,
@@ -67,7 +67,7 @@ export function employeeRoutes(deps: {
         deps.today(),
       );
       res.json({
-        items: items.map((row) => employeeJson(row, current.get(row.id) ?? null)),
+        items: items.map((row) => employeeJson(row, current.get(row.id))),
         page,
         page_size: pageSize,
         total,
