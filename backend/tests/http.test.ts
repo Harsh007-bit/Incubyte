@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 
@@ -86,15 +87,14 @@ describe("http input", () => {
     expect(response.body.department).toBe("Product");
   });
 
-  it("imports people from CSV and reports row errors", async () => {
+  it("imports people from Excel and reports row errors", async () => {
     const { app } = http();
-    const response = await request(app).post("/api/employees/import").send({
-      csv: [
-        "name,email,country_code,department,designation",
-        "Ada Lovelace,ada@acme.test,IN,Engineering,Engineer",
-        "Bad Row,not-an-email,IN,Engineering,Engineer",
-      ].join("\n"),
-    });
+    const file = await excelFile([
+      ["name", "email", "country_code", "department", "designation"],
+      ["Ada Lovelace", "ada@acme.test", "IN", "Engineering", "Engineer"],
+      ["Bad Row", "not-an-email", "IN", "Engineering", "Engineer"],
+    ]);
+    const response = await request(app).post("/api/employees/import").send({ file });
     expect(response.status).toBe(200);
     expect(response.body.created).toBe(1);
     expect(response.body.errors).toEqual([
@@ -102,12 +102,21 @@ describe("http input", () => {
     ]);
   });
 
-  it("rejects CSV without the required columns", async () => {
+  it("rejects Excel without the required columns", async () => {
     const { app } = http();
-    const response = await request(app)
-      .post("/api/employees/import")
-      .send({ csv: "name,email\nAda,ada@acme.test" });
+    const file = await excelFile([
+      ["name", "email"],
+      ["Ada", "ada@acme.test"],
+    ]);
+    const response = await request(app).post("/api/employees/import").send({ file });
     expect(response.status).toBe(400);
     expect(response.body.detail).toMatch(/header/);
   });
 });
+
+async function excelFile(rows: string[][]) {
+  const book = new ExcelJS.Workbook();
+  const sheet = book.addWorksheet("People");
+  for (const row of rows) sheet.addRow(row);
+  return Buffer.from(await book.xlsx.writeBuffer()).toString("base64");
+}

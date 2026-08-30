@@ -4,9 +4,9 @@ import { PAGE_SIZE_DEFAULT, PAGE_SIZE_MAX } from "../common/constants.js";
 import type { Employee, SalaryRecord } from "../common/types.js";
 import type { EmployeeService } from "../services/employees.js";
 import type { SalaryService } from "../services/salaries.js";
-import { parseEmployeeCsv } from "../utils/csv.js";
+import { decodeExcelBase64, parseEmployeeExcel, sampleEmployeeExcel } from "../utils/excel.js";
 import { queryParam, queryValues } from "../utils/query.js";
-import { createEmployeeBody, importCsvBody, updateEmployeeBody } from "../validators/employees.js";
+import { createEmployeeBody, importExcelBody, updateEmployeeBody } from "../validators/employees.js";
 import { parseAmount, salaryBody } from "../validators/salaries.js";
 
 function salaryJson(record: SalaryRecord) {
@@ -94,10 +94,26 @@ export function employeeRoutes(deps: {
     }
   });
 
+  router.get("/import/sample", async (_req, res, next) => {
+    try {
+      const file = await sampleEmployeeExcel();
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader("Content-Disposition", "attachment; filename=employees-sample.xlsx");
+      res.send(file);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post("/import", async (req, res, next) => {
     try {
-      const { csv } = importCsvBody.parse(req.body);
-      const { created, errors } = await deps.employees.createMany(parseEmployeeCsv(csv));
+      const { file } = importExcelBody.parse(req.body);
+      const { created, errors } = await deps.employees.createMany(
+        await parseEmployeeExcel(decodeExcelBase64(file)),
+      );
       res.json({ created: created.length, errors });
     } catch (error) {
       next(error);

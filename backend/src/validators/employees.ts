@@ -23,7 +23,7 @@ export const updateEmployeeBody = z.object({
   status: z.enum(["active", "inactive"]).optional(),
 });
 
-export const importCsvBody = z.object({ csv: z.string().min(1) });
+export const importExcelBody = z.object({ file: z.string().min(1) });
 
 export function validateProfile(input: {
   name: string;

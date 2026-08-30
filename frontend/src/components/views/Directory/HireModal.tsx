@@ -5,12 +5,7 @@ import { useSnackBar } from "../../SnackBar/SnackBarContext";
 import { SnackBarVariant } from "../../SnackBar/SnackbarWrapper";
 import type { Meta } from "../../../models/types";
 
-const SAMPLE_CSV = `name,email,country_code,department,designation
-Priya Shah,csv.priya.shah@acme.test,IN,Engineering,Software Engineer
-James Chen,csv.james.chen@acme.test,US,Product,Product Manager
-`;
-
-type Tab = "one" | "csv";
+type Tab = "one" | "excel";
 
 type ImportError = { line: number; detail: string };
 
@@ -26,7 +21,7 @@ export function HireModal({
   const [tab, setTab] = useState<Tab>("one");
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [csv, setCsv] = useState("");
+  const [file, setFile] = useState("");
   const [importing, setImporting] = useState(false);
   const [created, setCreated] = useState<number | null>(null);
   const [rowErrors, setRowErrors] = useState<ImportError[]>([]);
@@ -77,13 +72,13 @@ export function HireModal({
     setRowErrors([]);
     setError(null);
     const reader = new FileReader();
-    reader.onload = () => setCsv(String(reader.result ?? ""));
-    reader.readAsText(file);
+    reader.onload = () => setFile(String(reader.result ?? ""));
+    reader.readAsDataURL(file);
   }
 
   async function onImport() {
-    if (!csv.trim()) {
-      const message = "Choose a CSV file first";
+    if (!file) {
+      const message = "Choose an Excel file first";
       setError(message);
       snackbar({ message, variant: SnackBarVariant.ERROR });
       return;
@@ -91,7 +86,7 @@ export function HireModal({
     try {
       setImporting(true);
       setError(null);
-      const result = await api.importEmployees(csv);
+      const result = await api.importEmployees(file);
       setCreated(result.created);
       setRowErrors(result.errors);
       if (result.created > 0) onHired();
@@ -116,14 +111,18 @@ export function HireModal({
     }
   }
 
-  function downloadSample() {
-    const blob = new Blob([SAMPLE_CSV], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "employees-sample.csv";
-    link.click();
-    URL.revokeObjectURL(url);
+  async function downloadSample() {
+    try {
+      const blob = await api.importSample();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "employees-sample.xlsx";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      snackbar({ message: (err as Error).message, variant: SnackBarVariant.ERROR });
+    }
   }
 
   return (
@@ -153,12 +152,12 @@ export function HireModal({
           </button>
           <button
             type="button"
-            className={`tab ${tab === "csv" ? "active" : ""}`}
+            className={`tab ${tab === "excel" ? "active" : ""}`}
             role="tab"
-            aria-selected={tab === "csv"}
-            onClick={() => setTab("csv")}
+            aria-selected={tab === "excel"}
+            onClick={() => setTab("excel")}
           >
-            CSV upload
+            Excel upload
           </button>
         </div>
         <div className="modal-body">
@@ -198,21 +197,26 @@ export function HireModal({
               </button>
             </form>
           )}
-          {tab === "csv" && (
+          {tab === "excel" && (
             <div className="csv-panel">
               <p className="lede" style={{ marginBottom: 12 }}>
-                Upload a CSV with columns <code>name, email, country_code, department, designation</code>.
+                Upload an Excel file (.xlsx) with columns{" "}
+                <code>name, email, country_code, department, designation</code>.
                 Optional: <code>employee_code</code>. Up to 500 people. Invalid rows are skipped.
               </p>
               <div className="csv-actions">
                 <label className="file-pick">
-                  Choose CSV
-                  <input type="file" accept=".csv,text/csv" onChange={onFile} />
+                  Choose Excel
+                  <input
+                    type="file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    onChange={onFile}
+                  />
                 </label>
-                <button type="button" className="btn secondary" onClick={downloadSample}>
+                <button type="button" className="btn secondary" onClick={() => void downloadSample()}>
                   Download sample
                 </button>
-                <button type="button" className="btn" disabled={importing || !csv} onClick={() => void onImport()}>
+                <button type="button" className="btn" disabled={importing || !file} onClick={() => void onImport()}>
                   {importing ? "Uploading…" : "Upload and create"}
                 </button>
               </div>

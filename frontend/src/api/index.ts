@@ -39,11 +39,16 @@ export const api = {
   employee: (id: string) => request<Employee>(`/api/employees/${id}`),
   createEmployee: (body: Record<string, string>) =>
     request<Employee>("/api/employees", { method: "POST", body: JSON.stringify(body) }),
-  importEmployees: (csv: string) =>
+  importEmployees: (file: string) =>
     request<{ created: number; errors: Array<{ line: number; detail: string }> }>(
       "/api/employees/import",
-      { method: "POST", body: JSON.stringify({ csv }) },
+      { method: "POST", body: JSON.stringify({ file }) },
     ),
+  importSample: async () => {
+    const response = await fetch(`${API_BASE}/api/employees/import/sample`);
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
+    return response.blob();
+  },
   updateEmployee: (id: string, body: Record<string, string>) =>
     request<Employee>(`/api/employees/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   history: (id: string) => request<Salary[]>(`/api/employees/${id}/salary-history`),
