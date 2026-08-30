@@ -18,7 +18,7 @@ export function Insights() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([api.headcount(groupBy), api.spend(groupBy), api.avgSalary(groupBy)])
+    Promise.all([api.getHeadcount(groupBy), api.getSpend(groupBy), api.getAvgSalary(groupBy)])
       .then(([h, s, a]) => {
         if (cancelled) return;
         setHeadcount(h);

@@ -18,47 +18,47 @@ export class AnalyticsService {
     private readonly fx: FxService,
   ) {}
 
-  private async groupedActive(groupBy: string) {
+  private async groupActiveEmployees(groupBy: string) {
     if (!(groupBy in GROUP_FIELDS)) {
       throw new DomainError("groupBy must be country or department");
     }
     const field = GROUP_FIELDS[groupBy as keyof typeof GROUP_FIELDS];
     const buckets = new Map<string, Employee[]>();
-    for (const person of await this.employees.listActive()) {
-      const list = buckets.get(person[field]) ?? [];
-      list.push(person);
-      buckets.set(person[field], list);
+    for (const employee of await this.employees.listActive()) {
+      const list = buckets.get(employee[field]) ?? [];
+      list.push(employee);
+      buckets.set(employee[field], list);
     }
     return [...buckets.entries()].sort(([a], [b]) => a.localeCompare(b));
   }
 
-  private async snapshot(groupBy: string, today: string) {
-    const [buckets, rates] = await Promise.all([this.groupedActive(groupBy), this.fx.table()]);
-    const current = await this.salaries.currentForMany(
-      buckets.flatMap(([, people]) => people.map((person) => person.id)),
+  private async loadGroupedPay(groupBy: string, today: string) {
+    const [buckets, rates] = await Promise.all([this.groupActiveEmployees(groupBy), this.fx.getRateTable()]);
+    const currentByEmployeeId = await this.salaries.getCurrentForMany(
+      buckets.flatMap(([, employees]) => employees.map((employee) => employee.id)),
       today,
     );
-    return { buckets, rates, current };
+    return { buckets, rates, currentByEmployeeId };
   }
 
-  private usd(record: SalaryRecord, rates: Map<string, Decimal>) {
+  private amountInUsd(record: SalaryRecord, rates: Map<string, Decimal>) {
     return this.fx.toUsd(record.baseAmount, record.currency, rates);
   }
 
   async headcount(groupBy = "country") {
-    const buckets = await this.groupedActive(groupBy);
-    return buckets.map(([group, people]) => ({ group, headcount: people.length }));
+    const buckets = await this.groupActiveEmployees(groupBy);
+    return buckets.map(([group, employees]) => ({ group, headcount: employees.length }));
   }
 
   async spend(groupBy = "country", today: string) {
-    const { buckets, rates, current } = await this.snapshot(groupBy, today);
-    return buckets.map(([group, people]) => {
+    const { buckets, rates, currentByEmployeeId } = await this.loadGroupedPay(groupBy, today);
+    return buckets.map(([group, employees]) => {
       let spendUsd = new Decimal(0);
       let paidHeadcount = 0;
-      for (const person of people) {
-        const record = current.get(person.id);
+      for (const employee of employees) {
+        const record = currentByEmployeeId.get(employee.id);
         if (!record) continue;
-        spendUsd = spendUsd.add(this.usd(record, rates));
+        spendUsd = spendUsd.add(this.amountInUsd(record, rates));
         paidHeadcount += 1;
       }
       return { group, spendUsd, paidHeadcount };
@@ -66,17 +66,17 @@ export class AnalyticsService {
   }
 
   async avgSalary(groupBy = "country", today: string) {
-    const { buckets, rates, current } = await this.snapshot(groupBy, today);
-    return buckets.map(([group, people]) => {
-      const paid = people.flatMap((person) => {
-        const record = current.get(person.id);
-        return record ? [this.usd(record, rates)] : [];
+    const { buckets, rates, currentByEmployeeId } = await this.loadGroupedPay(groupBy, today);
+    return buckets.map(([group, employees]) => {
+      const paid = employees.flatMap((employee) => {
+        const record = currentByEmployeeId.get(employee.id);
+        return record ? [this.amountInUsd(record, rates)] : [];
       });
       const avgSalaryUsd =
         paid.length === 0
           ? null
           : paid.reduce((sum, value) => sum.add(value), new Decimal(0)).div(paid.length).toDecimalPlaces(2);
-      return { group, avgSalaryUsd, paidHeadcount: paid.length, headcount: people.length };
+      return { group, avgSalaryUsd, paidHeadcount: paid.length, headcount: employees.length };
     });
   }
 }

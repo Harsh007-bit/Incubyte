@@ -31,7 +31,7 @@ function toRecord(row: Row): SalaryRecord {
 export class PgSalaryRepository implements SalaryRepository {
   constructor(private readonly db: Pool) {}
 
-  async add(record: SalaryRecord) {
+  async insert(record: SalaryRecord) {
     try {
       const { rows } = await this.db.query<Row>(
         `INSERT INTO salary_records
@@ -74,7 +74,7 @@ export class PgSalaryRepository implements SalaryRepository {
     return rows.map(toRecord);
   }
 
-  async currentForMany(employeeIds: string[], today: string) {
+  async getCurrentForMany(employeeIds: string[], today: string) {
     if (employeeIds.length === 0) return new Map<string, SalaryRecord>();
     const { rows } = await this.db.query<Row>(
       `SELECT id, employee_id, base_amount::text, currency, effective_from::text, reason, created_at

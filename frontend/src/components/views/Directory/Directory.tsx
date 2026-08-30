@@ -54,7 +54,7 @@ export function Directory() {
     const id = ++requestId.current;
     setLoading(true);
     try {
-      const result = await api.employees({
+      const result = await api.listEmployees({
         q: queryNames,
         country: countries,
         department: departments,
@@ -89,7 +89,7 @@ export function Directory() {
   }
 
   useEffect(() => {
-    api.meta().then(setMeta).catch((err: Error) =>
+    api.getMeta().then(setMeta).catch((err: Error) =>
       snackbar({ message: err.message, variant: SnackBarVariant.ERROR }),
     );
   }, []);
@@ -238,21 +238,21 @@ export function Directory() {
             <TableSkeleton rows={Math.min(pageSize, 10)} />
           ) : (
             <tbody>
-              {items.map((person) => (
-                <tr key={person.id}>
-                  <td className="mono">{person.employee_code}</td>
+              {items.map((employee) => (
+                <tr key={employee.id}>
+                  <td className="mono">{employee.employee_code}</td>
                   <td>
-                    <Link to={`/employees/${person.id}`}>{person.name}</Link>
+                    <Link to={`/employees/${employee.id}`}>{employee.name}</Link>
                   </td>
-                  <td>{person.country_code}</td>
-                  <td>{person.department}</td>
+                  <td>{employee.country_code}</td>
+                  <td>{employee.department}</td>
                   <td>
-                    {person.current_salary
-                      ? formatMoney(person.current_salary.base_amount, person.current_salary.currency)
+                    {employee.current_salary
+                      ? formatMoney(employee.current_salary.base_amount, employee.current_salary.currency)
                       : "—"}
                   </td>
                   <td>
-                    <span className={`pill ${person.status}`}>{person.status}</span>
+                    <span className={`pill ${employee.status}`}>{employee.status}</span>
                   </td>
                 </tr>
               ))}

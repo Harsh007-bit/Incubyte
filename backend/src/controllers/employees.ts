@@ -9,7 +9,7 @@ import { queryParam, queryValues } from "../utils/query.js";
 import { createEmployeeBody, importExcelBody, updateEmployeeBody } from "../validators/employees.js";
 import { parseAmount, salaryBody } from "../validators/salaries.js";
 
-function salaryJson(record: SalaryRecord) {
+function toSalaryJson(record: SalaryRecord) {
   return {
     id: record.id,
     employee_id: record.employeeId,
@@ -21,13 +21,13 @@ function salaryJson(record: SalaryRecord) {
   };
 }
 
-function positiveInt(value: unknown, fallback: number, max = Number.MAX_SAFE_INTEGER): number {
+function parsePositiveInt(value: unknown, fallback: number, max = Number.MAX_SAFE_INTEGER): number {
   const n = Number(value);
   if (!Number.isInteger(n) || n < 1) return fallback;
   return Math.min(max, n);
 }
 
-function employeeJson(employee: Employee, current?: SalaryRecord | null) {
+function toEmployeeJson(employee: Employee, currentSalary?: SalaryRecord | null) {
   return {
     id: employee.id,
     employee_code: employee.employeeCode,
@@ -39,7 +39,7 @@ function employeeJson(employee: Employee, current?: SalaryRecord | null) {
     status: employee.status,
     created_at: employee.createdAt.toISOString(),
     updated_at: employee.updatedAt.toISOString(),
-    current_salary: current ? salaryJson(current) : null,
+    current_salary: currentSalary ? toSalaryJson(currentSalary) : null,
   };
 }
 
@@ -52,8 +52,8 @@ export function employeeRoutes(deps: {
 
   router.get("/", async (req, res, next) => {
     try {
-      const page = positiveInt(queryParam(req, "page"), 1);
-      const pageSize = positiveInt(queryParam(req, "page_size"), PAGE_SIZE_DEFAULT, PAGE_SIZE_MAX);
+      const page = parsePositiveInt(queryParam(req, "page"), 1);
+      const pageSize = parsePositiveInt(queryParam(req, "page_size"), PAGE_SIZE_DEFAULT, PAGE_SIZE_MAX);
       const { items, total } = await deps.employees.listPage({
         names: queryValues(req.query.q),
         countries: queryValues(req.query.country),
@@ -62,12 +62,12 @@ export function employeeRoutes(deps: {
         offset: (page - 1) * pageSize,
         limit: pageSize,
       });
-      const current = await deps.salaries.currentForMany(
+      const currentByEmployeeId = await deps.salaries.getCurrentForMany(
         items.map((row) => row.id),
         deps.today(),
       );
       res.json({
-        items: items.map((row) => employeeJson(row, current.get(row.id))),
+        items: items.map((row) => toEmployeeJson(row, currentByEmployeeId.get(row.id))),
         page,
         page_size: pageSize,
         total,
@@ -88,7 +88,7 @@ export function employeeRoutes(deps: {
         designation: body.designation,
         employeeCode: body.employee_code,
       });
-      res.status(201).json(employeeJson(employee, null));
+      res.status(201).json(toEmployeeJson(employee, null));
     } catch (error) {
       next(error);
     }
@@ -122,9 +122,10 @@ export function employeeRoutes(deps: {
 
   router.get("/:id", async (req, res, next) => {
     try {
-      const employee = await deps.employees.get(req.params.id);
-      const current = await deps.salaries.current(employee.id, deps.today());
-      res.json(employeeJson(employee, current));
+      const employeeId = req.params.id;
+      const employee = await deps.employees.getById(employeeId);
+      const currentSalary = await deps.salaries.getCurrent(employee.id, deps.today());
+      res.json(toEmployeeJson(employee, currentSalary));
     } catch (error) {
       next(error);
     }
@@ -133,7 +134,7 @@ export function employeeRoutes(deps: {
   router.patch("/:id", async (req, res, next) => {
     try {
       const body = updateEmployeeBody.parse(req.body);
-      const employee = await deps.employees.update(req.params.id, {
+      const employee = await deps.employees.updateById(req.params.id, {
         name: body.name,
         email: body.email,
         countryCode: body.country_code,
@@ -141,8 +142,8 @@ export function employeeRoutes(deps: {
         designation: body.designation,
         status: body.status,
       });
-      const current = await deps.salaries.current(employee.id, deps.today());
-      res.json(employeeJson(employee, current));
+      const currentSalary = await deps.salaries.getCurrent(employee.id, deps.today());
+      res.json(toEmployeeJson(employee, currentSalary));
     } catch (error) {
       next(error);
     }
@@ -150,8 +151,8 @@ export function employeeRoutes(deps: {
 
   router.get("/:id/salary-history", async (req, res, next) => {
     try {
-      const rows = await deps.salaries.history(req.params.id);
-      res.json(rows.map(salaryJson));
+      const salaryHistory = await deps.salaries.listHistory(req.params.id);
+      res.json(salaryHistory.map(toSalaryJson));
     } catch (error) {
       next(error);
     }
@@ -160,14 +161,14 @@ export function employeeRoutes(deps: {
   router.post("/:id/salary", async (req, res, next) => {
     try {
       const body = salaryBody.parse(req.body);
-      const row = await deps.salaries.addSalary({
+      const salary = await deps.salaries.addSalary({
         employeeId: req.params.id,
         baseAmount: parseAmount(body.base_amount),
         currency: body.currency,
         effectiveFrom: body.effective_from,
         reason: body.reason,
       });
-      res.status(201).json(salaryJson(row));
+      res.status(201).json(toSalaryJson(salary));
     } catch (error) {
       next(error);
     }

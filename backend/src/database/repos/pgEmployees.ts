@@ -42,15 +42,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export class PgEmployeeRepository implements EmployeeRepository {
   constructor(private readonly db: Pool) {}
 
-  async get(id: string) {
-    if (!UUID.test(id)) {
+  async getById(employeeId: string) {
+    if (!UUID.test(employeeId)) {
       return null;
     }
-    const { rows } = await this.db.query<Row>("SELECT * FROM employees WHERE id = $1", [id]);
+    const { rows } = await this.db.query<Row>("SELECT * FROM employees WHERE id = $1", [employeeId]);
     return rows[0] ? toEmployee(rows[0]) : null;
   }
 
-  async add(employee: Employee) {
+  async insert(employee: Employee) {
     const client = await this.db.connect();
     try {
       await client.query("BEGIN");
@@ -95,7 +95,7 @@ export class PgEmployeeRepository implements EmployeeRepository {
     }
   }
 
-  async save(employee: Employee) {
+  async update(employee: Employee) {
     try {
       const { rows } = await this.db.query<Row>(
         `UPDATE employees

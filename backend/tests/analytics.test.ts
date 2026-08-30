@@ -11,7 +11,7 @@ describe("analytics", () => {
     const inactive = await hire(employees, { name: "Old Hand", email: "old@acme.test" });
     await pay(salaries, active.id, "1000000", "2026-01-01");
     await pay(salaries, inactive.id, "2000000", "2026-01-01");
-    await employees.update(inactive.id, { status: "inactive" });
+    await employees.updateById(inactive.id, { status: "inactive" });
 
     const india = (await analytics.spend("country", "2026-08-01")).find((row) => row.group === "IN");
     expect(india?.spendUsd.equals(new Decimal("12000"))).toBe(true);

@@ -23,7 +23,7 @@ export function parseAmount(value: string | number): Decimal {
   throw new DomainError("base_amount must be a number greater than zero");
 }
 
-export function currentSalary(records: SalaryRecord[], today: string): SalaryRecord | null {
+export function pickCurrentSalary(records: SalaryRecord[], today: string): SalaryRecord | null {
   let latest: SalaryRecord | null = null;
   for (const row of records) {
     if (row.effectiveFrom > today) continue;

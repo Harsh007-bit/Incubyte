@@ -23,7 +23,7 @@ export class EmployeeService {
     const department = input.department.trim();
     validateProfile({ name, email, countryCode, department, designation, status: "active" });
     const now = new Date();
-    return this.employees.add({
+    return this.employees.insert({
       id: randomUUID(),
       employeeCode: input.employeeCode?.trim() ?? "",
       name,
@@ -37,14 +37,14 @@ export class EmployeeService {
     });
   }
 
-  async get(id: string): Promise<Employee> {
-    const employee = await this.employees.get(id);
+  async getById(employeeId: string): Promise<Employee> {
+    const employee = await this.employees.getById(employeeId);
     if (!employee) throw new NotFoundError("employee not found");
     return employee;
   }
 
-  async update(
-    id: string,
+  async updateById(
+    employeeId: string,
     changes: Partial<{
       name: string;
       email: string;
@@ -54,7 +54,7 @@ export class EmployeeService {
       status: EmployeeStatus;
     }>,
   ): Promise<Employee> {
-    const employee = await this.get(id);
+    const employee = await this.getById(employeeId);
     const next = {
       name: (changes.name ?? employee.name).trim(),
       email: (changes.email ?? employee.email).trim(),
@@ -64,7 +64,7 @@ export class EmployeeService {
       status: changes.status ?? employee.status,
     };
     validateProfile(next);
-    return this.employees.save({ ...employee, ...next, updatedAt: new Date() });
+    return this.employees.update({ ...employee, ...next, updatedAt: new Date() });
   }
 
   listPage(filters: ListFilters) {

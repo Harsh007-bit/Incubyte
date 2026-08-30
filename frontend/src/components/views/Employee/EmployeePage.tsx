@@ -9,34 +9,37 @@ import { formatMoney } from "../../../utils/money";
 import type { Employee, Meta, Salary } from "../../../models/types";
 
 export function EmployeePage() {
-  const { id } = useParams<{ id: string }>();
+  const { id: employeeId } = useParams<{ id: string }>();
   const snackbar = useSnackBar();
-  const [person, setPerson] = useState<Employee | null>(null);
-  const [history, setHistory] = useState<Salary[]>([]);
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [salaryHistory, setSalaryHistory] = useState<Salary[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   async function refresh() {
-    if (!id) return;
-    const [detail, rows] = await Promise.all([api.employee(id), api.history(id)]);
-    setPerson(detail);
-    setHistory(rows);
+    if (!employeeId) return;
+    const [detail, rows] = await Promise.all([
+      api.getEmployee(employeeId),
+      api.listSalaryHistory(employeeId),
+    ]);
+    setEmployee(detail);
+    setSalaryHistory(rows);
   }
 
   useEffect(() => {
-    api.meta().then(setMeta).catch((err: Error) =>
+    api.getMeta().then(setMeta).catch((err: Error) =>
       snackbar({ message: err.message, variant: SnackBarVariant.ERROR }),
     );
     refresh().catch((err: Error) => setLoadError(err.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [employeeId]);
 
   async function onProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!person) return;
+    if (!employee) return;
     const form = new FormData(event.currentTarget);
     try {
-      await api.updateEmployee(person.id, {
+      await api.updateEmployee(employee.id, {
         name: String(form.get("name")),
         email: String(form.get("email")),
         country_code: String(form.get("country_code")),
@@ -52,11 +55,11 @@ export function EmployeePage() {
 
   async function onSalary(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!person) return;
+    if (!employee) return;
     const formEl = event.currentTarget;
     const form = new FormData(formEl);
     try {
-      await api.addSalary(person.id, {
+      await api.addSalary(employee.id, {
         base_amount: String(form.get("base_amount")),
         currency: String(form.get("currency")),
         effective_from: String(form.get("effective_from")),
@@ -71,11 +74,11 @@ export function EmployeePage() {
   }
 
   async function toggleStatus() {
-    if (!person) return;
-    const next = person.status === "active" ? "inactive" : "active";
-    if (!window.confirm(`Mark ${person.name} as ${next}?`)) return;
+    if (!employee) return;
+    const next = employee.status === "active" ? "inactive" : "active";
+    if (!window.confirm(`Mark ${employee.name} as ${next}?`)) return;
     try {
-      await api.updateEmployee(person.id, { status: next });
+      await api.updateEmployee(employee.id, { status: next });
       await refresh();
       snackbar({ message: `Marked ${next}`, variant: SnackBarVariant.SUCCESS });
     } catch (err) {
@@ -83,7 +86,7 @@ export function EmployeePage() {
     }
   }
 
-  if (!person) {
+  if (!employee) {
     if (loadError) return <p className="error">{loadError}</p>;
     return (
       <div aria-busy="true">
@@ -120,34 +123,34 @@ export function EmployeePage() {
       <p>
         <Link to="/">← Directory</Link>
       </p>
-      <h1>{person.name}</h1>
+      <h1>{employee.name}</h1>
       <p className="lede">
-        {person.employee_code} · {person.email} · {person.designation} · {person.department} ·{" "}
-        {person.country_code}
+        {employee.employee_code} · {employee.email} · {employee.designation} · {employee.department} ·{" "}
+        {employee.country_code}
       </p>
 
       <div className="profile">
         <section className="card profile-pay">
           <h2>Current pay</h2>
-          {person.current_salary ? (
+          {employee.current_salary ? (
             <>
               <p className="money">
-                {formatMoney(person.current_salary.base_amount, person.current_salary.currency)}
+                {formatMoney(employee.current_salary.base_amount, employee.current_salary.currency)}
               </p>
-              <p className="lede">Effective {person.current_salary.effective_from}</p>
+              <p className="lede">Effective {employee.current_salary.effective_from}</p>
             </>
           ) : (
             <p className="lede">No salary recorded yet.</p>
           )}
           <p>
-            <span className={`pill ${person.status}`}>{person.status}</span>{" "}
+            <span className={`pill ${employee.status}`}>{employee.status}</span>{" "}
             <button className="btn secondary" type="button" onClick={toggleStatus}>
-              Mark {person.status === "active" ? "inactive" : "active"}
+              Mark {employee.status === "active" ? "inactive" : "active"}
             </button>
           </p>
           <h2>History</h2>
           <ol className="history">
-            {history.map((row) => (
+            {salaryHistory.map((row) => (
               <li key={row.id}>
                 <span className="mono">{row.effective_from}</span>
                 <div>
@@ -166,19 +169,19 @@ export function EmployeePage() {
             className="form-grid"
             onSubmit={onProfile}
             style={{ flexDirection: "column", alignItems: "stretch" }}
-            key={person.updated_at}
+            key={employee.updated_at}
           >
             <label>
               Name
-              <input name="name" defaultValue={person.name} required />
+              <input name="name" defaultValue={employee.name} required />
             </label>
             <label>
               Email
-              <input name="email" type="email" defaultValue={person.email} required />
+              <input name="email" type="email" defaultValue={employee.email} required />
             </label>
             <label>
               Country
-              <select name="country_code" defaultValue={person.country_code}>
+              <select name="country_code" defaultValue={employee.country_code}>
                 {meta?.country_codes.map((code) => (
                   <option key={code}>{code}</option>
                 ))}
@@ -186,7 +189,7 @@ export function EmployeePage() {
             </label>
             <label>
               Department
-              <select name="department" defaultValue={person.department}>
+              <select name="department" defaultValue={employee.department}>
                 {meta?.departments.map((name) => (
                   <option key={name}>{name}</option>
                 ))}
@@ -194,7 +197,7 @@ export function EmployeePage() {
             </label>
             <label>
               Designation
-              <input name="designation" defaultValue={person.designation} required />
+              <input name="designation" defaultValue={employee.designation} required />
             </label>
             <button className="btn" type="submit">
               Save profile
@@ -212,7 +215,7 @@ export function EmployeePage() {
             </label>
             <label>
               Currency
-              <select name="currency" defaultValue={person.current_salary?.currency ?? "INR"}>
+              <select name="currency" defaultValue={employee.current_salary?.currency ?? "INR"}>
                 {meta?.currencies.map((code) => (
                   <option key={code}>{code}</option>
                 ))}

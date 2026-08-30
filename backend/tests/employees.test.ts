@@ -98,10 +98,10 @@ describe("employees", () => {
     const { employees } = world();
     const ada = await hire(employees, { email: "ada@acme.test" });
     const other = await hire(employees, { name: "Other", email: "other@acme.test" });
-    const saved = await employees.update(ada.id, { name: "  Ada  ", email: "  Ada@acme.test  " });
+    const saved = await employees.updateById(ada.id, { name: "  Ada  ", email: "  Ada@acme.test  " });
     expect(saved.name).toBe("Ada");
     expect(saved.email).toBe("Ada@acme.test");
-    await expect(employees.update(other.id, { email: "  ada@acme.test  " })).rejects.toBeInstanceOf(
+    await expect(employees.updateById(other.id, { email: "  ada@acme.test  " })).rejects.toBeInstanceOf(
       ConflictError,
     );
   });

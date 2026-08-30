@@ -15,8 +15,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  meta: () => request<Meta>("/api/meta"),
-  employees: (params: {
+  getMeta: () => request<Meta>("/api/meta"),
+  listEmployees: (params: {
     q?: string[];
     country?: string[];
     department?: string[];
@@ -36,7 +36,7 @@ export const api = {
     if (params.page_size !== undefined) query.set("page_size", String(params.page_size));
     return request<EmployeeList>(`/api/employees?${query}`);
   },
-  employee: (id: string) => request<Employee>(`/api/employees/${id}`),
+  getEmployee: (employeeId: string) => request<Employee>(`/api/employees/${employeeId}`),
   createEmployee: (body: Record<string, string>) =>
     request<Employee>("/api/employees", { method: "POST", body: JSON.stringify(body) }),
   importEmployees: (file: string) =>
@@ -49,12 +49,12 @@ export const api = {
     if (!response.ok) throw new Error(`Request failed (${response.status})`);
     return response.blob();
   },
-  updateEmployee: (id: string, body: Record<string, string>) =>
-    request<Employee>(`/api/employees/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-  history: (id: string) => request<Salary[]>(`/api/employees/${id}/salary-history`),
-  addSalary: (id: string, body: Record<string, string>) =>
-    request<Salary>(`/api/employees/${id}/salary`, { method: "POST", body: JSON.stringify(body) }),
-  headcount: (groupBy: string) => request<HeadcountRow[]>(`/api/analytics/headcount?groupBy=${groupBy}`),
-  spend: (groupBy: string) => request<SpendRow[]>(`/api/analytics/spend?groupBy=${groupBy}`),
-  avgSalary: (groupBy: string) => request<AvgRow[]>(`/api/analytics/avg-salary?groupBy=${groupBy}`),
+  updateEmployee: (employeeId: string, body: Record<string, string>) =>
+    request<Employee>(`/api/employees/${employeeId}`, { method: "PATCH", body: JSON.stringify(body) }),
+  listSalaryHistory: (employeeId: string) => request<Salary[]>(`/api/employees/${employeeId}/salary-history`),
+  addSalary: (employeeId: string, body: Record<string, string>) =>
+    request<Salary>(`/api/employees/${employeeId}/salary`, { method: "POST", body: JSON.stringify(body) }),
+  getHeadcount: (groupBy: string) => request<HeadcountRow[]>(`/api/analytics/headcount?groupBy=${groupBy}`),
+  getSpend: (groupBy: string) => request<SpendRow[]>(`/api/analytics/spend?groupBy=${groupBy}`),
+  getAvgSalary: (groupBy: string) => request<AvgRow[]>(`/api/analytics/avg-salary?groupBy=${groupBy}`),
 };

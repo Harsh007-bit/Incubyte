@@ -7,7 +7,7 @@ import type { FxRepository } from "../database/repos/fx.js";
 export class FxService {
   constructor(private readonly rates: FxRepository) {}
 
-  async table(): Promise<Map<string, Decimal>> {
+  async getRateTable(): Promise<Map<string, Decimal>> {
     const rows = await this.rates.list();
     const table = new Map(rows.map((row) => [row.currency, row.rateToUsd]));
     if (table.size === 0) {

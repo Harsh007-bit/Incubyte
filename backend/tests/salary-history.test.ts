@@ -11,7 +11,7 @@ describe("salary history", () => {
     await pay(salaries, person.id, "1000000", "2026-01-01");
     await pay(salaries, person.id, "1200000", "2026-07-01", "promotion");
 
-    const history = await salaries.history(person.id);
+    const history = await salaries.listHistory(person.id);
     expect(history).toHaveLength(2);
     expect(history.map((row) => row.baseAmount.toFixed(2)).sort()).toEqual([
       "1000000.00",
@@ -25,7 +25,7 @@ describe("salary history", () => {
     await pay(salaries, person.id, "1000000", "2026-01-01");
     await pay(salaries, person.id, "1200000", "2026-07-01");
 
-    const current = await salaries.current(person.id, "2026-08-01");
+    const current = await salaries.getCurrent(person.id, "2026-08-01");
     expect(current?.baseAmount.equals(new Decimal("1200000"))).toBe(true);
   });
 
@@ -35,7 +35,7 @@ describe("salary history", () => {
     await pay(salaries, person.id, "1000000", "2026-01-01");
     await pay(salaries, person.id, "1500000", "2026-12-01", "scheduled raise");
 
-    const current = await salaries.current(person.id, "2026-08-15");
+    const current = await salaries.getCurrent(person.id, "2026-08-15");
     expect(current?.baseAmount.equals(new Decimal("1000000"))).toBe(true);
   });
 
@@ -47,24 +47,24 @@ describe("salary history", () => {
     await expect(pay(salaries, person.id, "1500000", "2026-07-01", "correction")).rejects.toBeInstanceOf(
       ConflictError,
     );
-    expect(await salaries.history(person.id)).toHaveLength(1);
+    expect(await salaries.listHistory(person.id)).toHaveLength(1);
   });
 
   it("allows hiring without a salary and current salary is null", async () => {
     const { employees, salaries } = world();
     const person = await hire(employees);
     expect(person.id).toBeTruthy();
-    expect(await salaries.history(person.id)).toEqual([]);
-    expect(await salaries.current(person.id, "2026-08-01")).toBeNull();
+    expect(await salaries.listHistory(person.id)).toEqual([]);
+    expect(await salaries.getCurrent(person.id, "2026-08-01")).toBeNull();
   });
 
   it("keeps salary history after the employee becomes inactive", async () => {
     const { employees, salaries } = world();
     const person = await hire(employees);
     await pay(salaries, person.id, "1000000", "2026-01-01");
-    await employees.update(person.id, { status: "inactive" });
+    await employees.updateById(person.id, { status: "inactive" });
 
-    const history = await salaries.history(person.id);
+    const history = await salaries.listHistory(person.id);
     expect(history).toHaveLength(1);
     expect(history[0]?.baseAmount.equals(new Decimal("1000000"))).toBe(true);
   });
@@ -73,7 +73,7 @@ describe("salary history", () => {
     const { employees, salaries } = world();
     const person = await hire(employees);
     await expect(pay(salaries, person.id, "0", "2026-01-01")).rejects.toBeInstanceOf(DomainError);
-    expect(await salaries.history(person.id)).toEqual([]);
+    expect(await salaries.listHistory(person.id)).toEqual([]);
   });
 
   it("rejects an impossible calendar date", async () => {
@@ -82,6 +82,6 @@ describe("salary history", () => {
     await expect(pay(salaries, person.id, "1000000", "2026-02-31")).rejects.toBeInstanceOf(
       DomainError,
     );
-    expect(await salaries.history(person.id)).toEqual([]);
+    expect(await salaries.listHistory(person.id)).toEqual([]);
   });
 });
