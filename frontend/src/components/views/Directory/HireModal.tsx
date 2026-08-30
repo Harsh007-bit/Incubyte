@@ -196,9 +196,6 @@ export function HireModal({
               <button className="btn" type="submit" disabled={!meta}>
                 Create without salary
               </button>
-              <button className="btn secondary" type="button" onClick={onClose}>
-                Cancel
-              </button>
             </form>
           )}
           {tab === "csv" && (
