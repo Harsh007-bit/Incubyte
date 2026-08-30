@@ -2,9 +2,9 @@ import cors from "cors";
 import express from "express";
 import { ZodError } from "zod";
 
-import { analyticsRoutes } from "./resolvers/analytics.js";
+import { analyticsRoutes } from "./controllers/analytics.js";
 import { AnalyticsService } from "./services/analytics.js";
-import { employeeRoutes } from "./resolvers/employees.js";
+import { employeeRoutes } from "./controllers/employees.js";
 import type { EmployeeRepository } from "./database/repos/employees.js";
 import { EmployeeService } from "./services/employees.js";
 import type { FxRepository } from "./database/repos/fx.js";

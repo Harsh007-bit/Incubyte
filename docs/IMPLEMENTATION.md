@@ -123,7 +123,7 @@ Production Neon is already seeded. Do **not** point `npm test` at that database.
 
 ## 6. Architecture (as built)
 
-Modular monolith. HTTP is REST in a folder named `resolvers/` (not GraphQL).
+Modular monolith. HTTP is REST in `controllers/`.
 
 ```
 backend/src/
@@ -131,7 +131,7 @@ backend/src/
   http.ts            createApp() — named http.ts so Vercel does not treat it as the Express entry
   db.ts, config.ts
   common/            constants, types, errors, dates, schema SQL
-  resolvers/         employees, analytics
+  controllers/       employees, analytics
   services/          employees, salaries, analytics, fx
   validators/        Zod bodies + domain rules
   database/repos/    interfaces + pg* + in-memory fake

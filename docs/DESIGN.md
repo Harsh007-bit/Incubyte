@@ -27,7 +27,7 @@ Backend internal structure follows a layered boundary rather than a flat
 routes file, so business rules are easy to unit-test in isolation from
 HTTP and the database:
 
-  HTTP (resolvers)
+  HTTP (controllers)
       -> Application/service layer
       -> Domain/business rules
       -> Persistence (repository)
@@ -41,14 +41,14 @@ Example flow:
       -> PostgreSQL
 
 Suggested module layout (created as needed, not for aesthetics).
-The backend is a modular monolith using the same layer names as a
-typical Coastr Node service — common, resolvers, services, validators,
-database/repos, utils — without splitting into microservices:
+The backend is a modular monolith with layered folders — common,
+controllers, services, validators, database/repos, utils — without
+splitting into microservices:
 
   backend/src/
     server.ts, app.ts, db.ts, config.ts
     common/           constants, types, errors, dates
-    resolvers/        HTTP handlers (employees, analytics)
+    controllers/      HTTP handlers (employees, analytics)
     services/         application logic
     validators/       Zod bodies + domain rules
     database/repos/   interfaces, Postgres, in-memory fakes
