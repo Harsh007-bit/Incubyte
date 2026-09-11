@@ -11,7 +11,7 @@ a requirements doc but matters when building or defending the design.
   React + TypeScript SPA
           |
           v
-  Node.js + TypeScript (Express)
+  FastAPI (Vercel + local)
           |
           v
   PostgreSQL

@@ -61,7 +61,10 @@ Money in the UI is formatted; totals use cent-safe addition, not float `reduce`.
 
 ---
 
-## 3. API (Express, prefix `/api`)
+## 3. API (prefix `/api`)
+
+Local and live API is FastAPI in `backend-py/` (same JSON paths the React app already calls).
+The original Express app remains in `backend/`.
 
 | Method | Path | What it does |
 |--------|------|----------------|
@@ -123,20 +126,18 @@ Production Neon is already seeded. Do **not** point `npm test` at that database.
 
 ## 6. Architecture (as built)
 
-Modular monolith. HTTP is REST in `controllers/`.
+Modular monolith. HTTP is REST (FastAPI routers locally; Express controllers on Vercel).
 
 ```
-backend/src/
-  server.ts          boot, migrate, listen; Vercel entry
-  http.ts            createApp() — named http.ts so Vercel does not treat it as the Express entry
-  db.ts, config.ts
-  common/            constants, types, errors, dates, schema SQL
-  controllers/       employees, analytics
-  services/          employees, salaries, analytics, fx
-  validators/        Zod bodies + domain rules
-  database/repos/    interfaces + pg* + in-memory fake
-  utils/             csv, query, postgres errors
-  types/             local shims for pg / express / cors (NodeNext)
+backend-py/          local FastAPI API (uvicorn :8000)
+  app/http.py        create_app() — memory or Postgres repos
+  app/server.py      boot, migrate, seed FX, Pg* repos
+  app/routers/       employees, analytics
+  app/services/      employees, salaries, analytics, fx
+  app/repos/         protocols + memory + pg
+  seed.py            Faker ~10k; refuses Neon
+
+backend/              original Express API (kept in repo, not live)
 
 frontend/src/
   components/views/  Directory (+ HireModal), Employee, Insights
@@ -150,9 +151,13 @@ Services talk to repository interfaces. Unit tests use the in-memory repo. Postg
 
 ## 7. Tests
 
-`cd backend && npm test` — in-memory only; **does not** touch the 10k seed.
+`cd backend-py && pytest` — in-memory only; **does not** touch the 10k seed.
 
-`npm run test:pg` — only if `TEST_DATABASE_URL` is a **separate** DB (`acme_test`). Those tests `TRUNCATE`.
+`TEST_DATABASE_URL=postgresql://acme:acme@localhost:5432/acme_test pytest` — UNIQUE / CHECK. Those tests `TRUNCATE`. Never point this at Neon.
+
+`cd backend && npm test` — same coverage for the original Express API.
+
+`cd backend && npm run test:pg` — only if `TEST_DATABASE_URL` is a **separate** DB (`acme_test`). Those tests `TRUNCATE`.
 
 Covered:
 - History is not overwritten
@@ -174,9 +179,13 @@ Covered:
 
 ```bash
 docker compose up -d
-cd backend
+cd backend-py
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 export DATABASE_URL=postgresql://acme:acme@localhost:5432/acme
-npm install && npm test && npm run seed && npm run dev
+export APP_TZ=Asia/Kolkata
+pytest && python seed.py
+uvicorn app.server:app --reload --port 8000
 ```
 
 ```bash
@@ -192,10 +201,10 @@ UI http://localhost:5173 (proxies `/api` → `:8000`).
 | Piece | Where |
 |-------|--------|
 | UI | Vercel project `acme-pay` — https://acme-pay.vercel.app |
-| API | Vercel project `acme-pay-api` (Express) — https://acme-pay-api.vercel.app |
+| API | Vercel project `acme-pay-api` (FastAPI) — https://acme-pay-api.vercel.app |
 | DB | Neon (Vercel Marketplace), Singapore, free plan |
 | Frontend → API | `frontend/.env.production` → `VITE_API_URL=https://acme-pay-api.vercel.app` |
-| CORS | Reflects request origin when `VERCEL` is set |
+| CORS | Allows localhost:5173 and `*.vercel.app` |
 
 First API request after idle can cold-start. Insights over 10k rows is a couple of queries plus in-memory grouping (no warehouse).
 

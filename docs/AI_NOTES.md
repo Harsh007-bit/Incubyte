@@ -7,10 +7,10 @@ written first. Implementation follows those rules.
 STACK (LOCKED)
 --------------
 React + TypeScript + Vite
-Node.js + TypeScript + Express
-PostgreSQL via pg
-Zod at the API
-Vitest + Supertest
+Python + FastAPI (local API in backend-py/; same /api JSON as the SPA)
+PostgreSQL via psycopg
+Pydantic + pytest
+Node.js + TypeScript + Express remains in backend/ (not the live API)
 
 No ORM. No Prisma. I started down that path once and rolled it back —
 the schema is small and UNIQUE / CHECK should be visible SQL, not an
@@ -33,5 +33,5 @@ WHAT I REJECTED
 WHAT I KEPT
 -----------
 - Same salary-history invariants.
-- Validation in three places: UI, Zod, CHECK / UNIQUE in Postgres.
+- Validation in three places: UI, Pydantic/domain parsers, CHECK / UNIQUE in Postgres.
 - Routes under /api so the SPA and API can share a host.

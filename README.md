@@ -13,19 +13,25 @@ API: https://acme-pay-api.vercel.app/api/health
 
 ## Stack
 
-React + TypeScript + Vite · Node + TypeScript + Express · PostgreSQL · `pg` · Zod · Vitest
+React + TypeScript + Vite · **Python + FastAPI** · PostgreSQL · Pydantic · pytest
+
+The original Node/Express API is still in `backend/` (not used for local run).
+Live UI and API are FastAPI on Vercel (`acme-pay` + `acme-pay-api`).
 
 ## Run locally
 
 ```bash
 docker compose up -d
-cd backend
-cp .env.example .env
-npm install
+
+cd backend-py
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 export DATABASE_URL=postgresql://acme:acme@localhost:5432/acme
-npm test
-npm run seed
-npm run dev
+export APP_TZ=Asia/Kolkata
+pytest
+python seed.py
+uvicorn app.server:app --reload --port 8000
 ```
 
 In another terminal:
@@ -38,6 +44,8 @@ npm run dev
 
 UI: http://localhost:5173 · API: http://localhost:8000/api/health
 
+Vite proxies `/api` to `:8000`, so the React app does not need `VITE_API_URL` locally.
+
 ## Demo script (2–5 min)
 
 1. Open the directory. Search a name. Filter by country or department.
@@ -48,17 +56,18 @@ UI: http://localhost:5173 · API: http://localhost:8000/api/health
 
 ## Tests
 
-`cd backend && npm test` runs the in-memory unit tests and does **not**
+`cd backend-py && pytest` runs in-memory unit tests and does **not**
 touch the seeded database.
 
-Postgres constraint tests run only when `TEST_DATABASE_URL` points at a
-**separate** database (so they cannot `TRUNCATE` the 10k seed):
+Postgres UNIQUE / CHECK tests need a **separate** database (`acme_test`).
+They `TRUNCATE`. Never set `TEST_DATABASE_URL` to Neon.
 
 ```bash
-# once, if acme_test does not exist yet
-docker compose exec db createdb -U acme acme_test
-cd backend && npm run test:pg
+export TEST_DATABASE_URL=postgresql://acme:acme@localhost:5432/acme_test
+cd backend-py && pytest
 ```
 
-Unit tests cover salary history, current-pay selection, analytics, and
-hire-without-salary. Integration tests prove UNIQUE / CHECK in Postgres.
+```bash
+# Node API tests (legacy)
+cd backend && npm test
+```
